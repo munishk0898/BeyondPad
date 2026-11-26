@@ -42,6 +42,9 @@ object SelfAdb {
             "if [ -z \"\$ids\" ]; then echo NONE; fi; " +
             "for id in \$ids; do cmd display enable-display \$id && echo ENABLED \$id; done"
 
+    /** All traffic stays inside the tablet. Only the port is looked up (mDNS on the local network). */
+    private const val LOOPBACK = "127.0.0.1"
+
     fun init(context: Context) {
         ctx = context.applicationContext
         _state.value = AdbState(if (Prefs.settings.value.adbPaired) AdbLink.UNREACHABLE else AdbLink.NOT_PAIRED,
@@ -59,7 +62,7 @@ object SelfAdb {
             val (ok, msg) = try {
                 val found = discover(AdbMdns.SERVICE_TYPE_TLS_PAIRING, 8_000)
                     ?: throw IllegalStateException("Pairing dialog not found. Keep 'Pair device with pairing code' open on screen and try again.")
-                SelfAdbManager.get(ctx).pair(found.first, found.second, clean)
+                SelfAdbManager.get(ctx).pair(LOOPBACK, found.second, clean)
                 Prefs.update { it.copy(adbPaired = true) }
                 DisplayRepository.log("Paired with this tablet's Wireless debugging")
                 true to "Paired."
@@ -72,6 +75,7 @@ object SelfAdb {
                 connectLocked()
                 runLocked("pm grant ${ctx.packageName} android.permission.WRITE_SECURE_SETTINGS")
                 enableLocked()
+                releaseLocked()
             }
         }
     }
@@ -81,6 +85,7 @@ object SelfAdb {
         if (!isPaired) { onDone("Set up the one-time pairing first."); return }
         worker.execute {
             val out = if (connectLocked()) enableLocked() else _state.value.message
+            releaseLocked()
             DisplayRepository.log("Turn on monitor ($reason): $out")
             main.postDelayed({ DisplayRepository.refresh(); onDone(out) }, 800)
         }
@@ -90,6 +95,7 @@ object SelfAdb {
     fun putGlobal(key: String, value: Int, onDone: (Boolean) -> Unit = {}) {
         worker.execute {
             val ok = connectLocked() && runLocked("settings put global $key $value; settings get global $key").trim().endsWith("$value")
+            releaseLocked()
             main.post { onDone(ok) }
         }
     }
@@ -108,7 +114,7 @@ object SelfAdb {
         _state.value = AdbState(AdbLink.CONNECTING, "Connecting to Wireless debugging…")
         return try {
             val found = discover(AdbMdns.SERVICE_TYPE_TLS_CONNECT, 6_000)
-            val ok = if (found != null) m.connect(found.first, found.second) || m.isConnected else m.autoConnect(ctx, 6_000)
+            val ok = found != null && (m.connect(LOOPBACK, found.second) || m.isConnected)
             _state.value = if (ok) AdbState(AdbLink.CONNECTED, "Connected to Wireless debugging.")
             else AdbState(AdbLink.UNREACHABLE, "Wireless debugging is off or Wi-Fi is disconnected.")
             ok
@@ -120,6 +126,12 @@ object SelfAdb {
             _state.value = AdbState(AdbLink.UNREACHABLE, "Wireless debugging is off or Wi-Fi is disconnected (${e.javaClass.simpleName}).")
             false
         }
+    }
+
+    /** Close the connection so nothing stays resident between plug-ins. */
+    private fun releaseLocked() {
+        runCatching { SelfAdbManager.get(ctx).disconnect() }
+        if (_state.value.link == AdbLink.CONNECTED) _state.value = AdbState(AdbLink.UNREACHABLE, "Paired. Connects only when a monitor is plugged in.")
     }
 
     private fun enableLocked(): String {

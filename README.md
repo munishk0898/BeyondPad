@@ -44,19 +44,19 @@ change the system's global output mode, or override OEM restrictions. These need
 
 ## 2. Install
 
-1. Download `BeyondPad-1.2.0-release.apk` to the tablet.
+1. Download `BeyondPad-1.3.0-release.apk` to the tablet.
 2. Open it and allow "Install unknown apps" for your browser or file manager when asked.
 3. Open BeyondPad and allow notifications.
 4. Optional:
    - **Display over other apps**: lets BeyondPad open the desktop on the monitor by itself when you plug it in. Without it, tap the notification instead.
    - **Usage access**: shows which taskbar apps are active right now.
 
-The debug APK (`BeyondPad-1.2.0-debug.apk`, package `com.beyondpad.app.debug`) can be installed next to the release build.
+The debug APK (`BeyondPad-1.3.0-debug.apk`, package `com.beyondpad.app.debug`) can be installed next to the release build.
 
 Install from a computer instead:
 
 ```
-adb install -r BeyondPad-1.2.0-release.apk
+adb install -r BeyondPad-1.3.0-release.apk
 ```
 
 ## 3. Why the monitor stayed dark, and the one-time pairing
@@ -77,6 +77,16 @@ BeyondPad 1.2.0 can do this itself through the tablet's own Wireless debugging, 
 After pairing BeyondPad also grants itself `WRITE_SECURE_SETTINGS`, and it switches the monitor
 on automatically whenever a monitor or hub is plugged in, as long as Wireless debugging stays on.
 If Android forgets the pairing (for example after it switches Wireless debugging off), pair again.
+
+### Offline, storage and memory
+
+- BeyondPad works completely offline. It talks only to the tablet itself (`127.0.0.1`). The
+  local network is used only to look up the Wireless debugging port. Nothing is sent anywhere,
+  and there is no analytics or update check. The INTERNET permission exists only because Android
+  needs it for any socket, including one to the tablet itself.
+- The APK contains native code for arm64 only (the Pad 3's CPU) and English resources only.
+- The Wireless debugging connection is opened only when a monitor is plugged in (or you tap
+  Turn on monitor) and closed straight after.
 
 ## 4. First run on the Pad 3
 

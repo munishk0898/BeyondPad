@@ -36,11 +36,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CropFree
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.Monitor
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
@@ -87,6 +83,7 @@ import com.beyondpad.app.display.DisplayRepository
 import com.beyondpad.app.display.ModeController
 import com.beyondpad.app.display.ModeResult
 import com.beyondpad.app.ui.theme.BP
+import com.beyondpad.app.ui.theme.BpIcons
 import com.beyondpad.app.ui.theme.BeyondPadTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -178,7 +175,7 @@ private fun DesktopScreen(displayId: Int) {
     val foreground by produceState<Set<String>?>(initialValue = null) {
         while (true) {
             value = withContext(Dispatchers.IO) { AppRepository.foregroundPackages(ctx) }
-            delay(4000)
+            delay(10_000)
         }
     }
     val clock by produceState(initialValue = "") {
@@ -294,7 +291,7 @@ private fun DesktopScreen(displayId: Int) {
                     }
                     Spacer(Modifier.height(10.dp))
                     PanelRow(
-                        if (settings.freeformWindows) Icons.Filled.CropFree else Icons.Filled.Fullscreen,
+                        if (settings.freeformWindows) BpIcons.Window else BpIcons.Fullscreen,
                         if (settings.freeformWindows) "New apps open in a window (if the system allows)" else "New apps open full screen",
                     ) { Prefs.update { it.copy(freeformWindows = !it.freeformWindows) } }
                     PanelRow(Icons.Filled.Settings, "Resolution and diagnostics are on the tablet's BeyondPad app") { panelOpen = false }
@@ -312,7 +309,7 @@ private fun DesktopScreen(displayId: Int) {
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TaskbarButton(Icons.Filled.Apps, "Start", highlighted = drawerOpen) { drawerOpen = !drawerOpen; panelOpen = false }
+            TaskbarButton(BpIcons.Apps, "Start", highlighted = drawerOpen) { drawerOpen = !drawerOpen; panelOpen = false }
             Spacer(Modifier.width(6.dp))
             Box(Modifier.width(1.dp).height(28.dp).background(BP.Outline))
             Spacer(Modifier.width(6.dp))
@@ -336,7 +333,7 @@ private fun DesktopScreen(displayId: Int) {
                 Text(it, color = BP.Text, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 10.dp).width(300.dp))
             }
-            TaskbarButton(Icons.Filled.Monitor, info?.currentMode?.let { "${it.width}×${it.height} ${it.refreshRate.toInt()}Hz" } ?: "Display",
+            TaskbarButton(BpIcons.Monitor, info?.currentMode?.let { "${it.width}×${it.height} ${it.refreshRate.toInt()}Hz" } ?: "Display",
                 highlighted = panelOpen, showText = true) { panelOpen = !panelOpen; drawerOpen = false }
             Text(clock, color = BP.Text, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
             TaskbarButton(Icons.Filled.Close, "Close desktop") { (ctx as? ComponentActivity)?.finishAndRemoveTask() }

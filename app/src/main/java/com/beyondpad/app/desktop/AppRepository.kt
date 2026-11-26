@@ -39,7 +39,7 @@ object AppRepository {
                     label = info.label?.toString() ?: info.componentName.packageName,
                     component = info.componentName,
                     user = user,
-                    icon = info.getBadgedIcon(0).toBitmap(96).asImageBitmap(),
+                    icon = info.getBadgedIcon(0).toBitmap(64).asImageBitmap(),
                 )
             }
         }.sortedBy { it.label.lowercase() }

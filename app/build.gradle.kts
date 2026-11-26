@@ -16,8 +16,11 @@ android {
         applicationId = "com.beyondpad.app"
         minSdk = 30
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
+        // The Pad 3 is arm64 only: skip native code for other CPUs, and English resources only.
+        ndk { abiFilters += "arm64-v8a" }
+        resourceConfigurations += "en"
     }
 
     signingConfigs {
@@ -74,9 +77,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.compose.material:material-icons-core")
 
     // Wireless-debugging client used to switch on the monitor that Android keeps disabled
     implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
