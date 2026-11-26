@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Foreground monitor that watches for HDMI / USB-C display connections -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Optional, user-granted in Settings: lets the monitor open the desktop from the background -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Optional, user-granted in Settings: shows which apps are currently in the foreground -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <!-- Optional, granted ONLY via ADB (pm grant): toggles the AOSP desktop/freeform developer settings -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Lists launchable apps for the desktop launcher (no QUERY_ALL_PACKAGES needed) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.SECONDARY_HOME" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".BeyondPadApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BeyondPad">
+
+        <!-- Dashboard on the tablet -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|keyboard|keyboardHidden|navigation">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Desktop shell that runs ON the external display -->
+        <activity
+            android:name=".desktop.DesktopActivity"
+            android:exported="false"
+            android:label="@string/desktop_label"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.beyondpad.app.desktop"
+            android:excludeFromRecents="true"
+            android:resizeableActivity="true"
+            android:theme="@style/Theme.BeyondPad.Desktop"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|keyboard|keyboardHidden|navigation" />
+
+        <!-- Probe used to test whether this ROM lets ordinary apps open windows on the external display -->
+        <activity
+            android:name=".desktop.LaunchProbeActivity"
+            android:exported="false"
+            android:taskAffinity="com.beyondpad.app.probe"
+            android:excludeFromRecents="true"
+            android:resizeableActivity="true"
+            android:theme="@style/Theme.BeyondPad.Desktop" />
+
+        <service
+            android:name=".service.DisplayMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Watches for external HDMI/USB-C monitor connections so the user's desktop can open on the monitor when it is plugged in." />
+        </service>
+
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

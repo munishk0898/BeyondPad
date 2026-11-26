@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BeyondPad" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bp_background</item>
+        <item name="android:statusBarColor">@color/bp_background</item>
+        <item name="android:navigationBarColor">@color/bp_background</item>
+        <item name="android:colorAccent">@color/bp_accent</item>
+    </style>
+
+    <style name="Theme.BeyondPad.Desktop" parent="Theme.BeyondPad">
+        <item name="android:windowBackground">@color/bp_desktop</item>
+    </style>
+
+    <color name="bp_background">#FF0B0F17</color>
+    <color name="bp_desktop">#FF070A10</color>
+    <color name="bp_accent">#FF3D8BFF</color>
+</resources>

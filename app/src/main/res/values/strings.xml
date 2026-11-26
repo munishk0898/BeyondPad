@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BeyondPad</string>
+    <string name="desktop_label">BeyondPad Desktop</string>
+    <string name="channel_monitor">External display monitor</string>
+    <string name="channel_events">Display connection events</string>
+</resources>
