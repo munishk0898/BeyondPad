@@ -13,8 +13,6 @@ data class Settings(
     val monitorService: Boolean = true,
     val freeformWindows: Boolean = true,
     val pinned: List<String> = emptyList(),
-    val adbPaired: Boolean = false,
-    val autoEnableMonitor: Boolean = true,
 )
 
 object Prefs {
@@ -31,8 +29,6 @@ object Prefs {
             monitorService = sp.getBoolean("monitorService", true),
             freeformWindows = sp.getBoolean("freeformWindows", true),
             pinned = sp.getString("pinned", "")!!.split('|').filter { it.isNotBlank() },
-            adbPaired = sp.getBoolean("adbPaired", false),
-            autoEnableMonitor = sp.getBoolean("autoEnableMonitor", true),
         )
     }
 
@@ -46,8 +42,6 @@ object Prefs {
             .putBoolean("monitorService", s.monitorService)
             .putBoolean("freeformWindows", s.freeformWindows)
             .putString("pinned", s.pinned.joinToString("|"))
-            .putBoolean("adbPaired", s.adbPaired)
-            .putBoolean("autoEnableMonitor", s.autoEnableMonitor)
             .apply()
     }
 }

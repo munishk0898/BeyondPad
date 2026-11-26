@@ -1,8 +1,6 @@
 package com.beyondpad.app.ui
 
 import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -44,10 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,9 +52,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.beyondpad.app.Prefs
-import com.beyondpad.app.adb.AdbLink
-import com.beyondpad.app.adb.PairingReceiver
-import com.beyondpad.app.adb.SelfAdb
 import com.beyondpad.app.desktop.DesktopLauncher
 import com.beyondpad.app.display.CapabilityProbe
 import com.beyondpad.app.display.ConnectionSignals
@@ -145,25 +136,27 @@ private fun advice(link: LinkState, ext: ExternalDisplayInfo?, s: Signals): Advi
         ),
     )
     LinkState.HIDDEN_BY_SYSTEM -> Advice(
-        "Monitor connected but switched off",
-        "Android sees the monitor${s.hdmiAudioName?.let { " ($it)" } ?: ""} but keeps it off until it is confirmed, and OxygenOS never asks. BeyondPad can switch it on for you.",
+        "Monitor connected but switched off by Android",
+        "Android sees the monitor${s.hdmiAudioName?.let { " ($it)" } ?: ""} but keeps it off until it is confirmed, and this OxygenOS version does not ask. No app can switch it on without developer tools.",
         listOf(
-            "Set up the one-time pairing below (about a minute).",
-            "Tap Turn on monitor. After that BeyondPad does it by itself every time you plug in.",
+            "Unplug and replug the cable, then unlock the tablet and look for a prompt to use or mirror the display.",
+            "Check Settings for a connected or external display option.",
+            "As soon as Android turns the monitor on, BeyondPad opens the desktop on it by itself.",
         ),
     )
     LinkState.ADAPTER_NO_VIDEO -> Advice(
         "Hub connected, monitor not active",
-        "The tablet sees ${s.usb.firstOrNull { it.isHub }?.name ?: s.usb.first().name} on its port. On the Pad 3, Android keeps a new monitor switched off until it is confirmed, so it can look like there is no signal.",
+        "The tablet sees ${s.usb.firstOrNull { it.isHub }?.name ?: s.usb.first().name} on its port but no active display. On this OxygenOS version Android keeps new monitors switched off until they are confirmed.",
         listOf(
-            "Set up the one-time pairing below, then tap Turn on monitor.",
-            "If the monitor still shows nothing, the hub may not carry video (it needs DisplayPort Alt Mode): try another adapter.",
+            "Unplug and replug the cable, then unlock the tablet and look for a prompt to use or mirror the display.",
+            "Check Settings for a connected or external display option.",
+            "If nothing changes, the hub may not carry video from a tablet (it needs DisplayPort Alt Mode).",
         ),
     )
     LinkState.NOTHING -> Advice(
         "Nothing connected",
         "Plug a USB-C to HDMI adapter or hub into the tablet.",
-        listOf("Use the tablet's USB-C port with an adapter that supports DisplayPort Alt Mode. If the monitor stays dark, tap Turn on monitor."),
+        listOf("Use the tablet's USB-C port with an adapter that supports DisplayPort Alt Mode."),
     )
 }
 
@@ -183,14 +176,12 @@ private fun Overview(activity: MainActivity, link: LinkState, ext: ExternalDispl
                 Column(Modifier.weight(1.25f)) { Hero(activity, link, a, monitorText, goTo) }
                 Column(Modifier.weight(1f).padding(top = 8.dp)) {
                     SignalsPanel(link, ext, s); Spacer(Modifier.height(28.dp)); Steps(a.steps)
-                    Spacer(Modifier.height(28.dp)); MonitorSwitch(activity)
                 }
             }
         } else {
             Column {
                 Hero(activity, link, a, monitorText, goTo)
                 Spacer(Modifier.height(28.dp)); SignalsPanel(link, ext, s); Spacer(Modifier.height(28.dp)); Steps(a.steps)
-                Spacer(Modifier.height(28.dp)); MonitorSwitch(activity)
             }
         }
     }
@@ -211,92 +202,11 @@ private fun Hero(activity: MainActivity, link: LinkState, a: Advice, monitorText
                 GhostButton("Display settings") { goTo(1) }
             }
             LinkState.HIDDEN_BY_SYSTEM, LinkState.ADAPTER_NO_VIDEO -> {
-                TurnOnButton(activity, primary = true)
+                PrimaryButton("Open display settings") { runCatching { activity.startActivity(SystemAccess.displaySettingsIntent()) } }
                 GhostButton("Re-check") { ConnectionSignals.refresh(); DisplayRepository.refresh(); CapabilityProbe.refreshStatic(activity) }
             }
             LinkState.NOTHING -> {
-                TurnOnButton(activity, primary = false)
                 GhostButton("Re-check") { ConnectionSignals.refresh(); DisplayRepository.refresh() }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TurnOnButton(activity: MainActivity, primary: Boolean) {
-    val adb by SelfAdb.state.collectAsStateWithLifecycle()
-    val settings by Prefs.settings.collectAsStateWithLifecycle()
-    if (!settings.adbPaired) return
-    val busy = adb.link == AdbLink.CONNECTING
-    val act = { SelfAdb.enableMonitors("button") { activity.toast(it) } }
-    if (primary) PrimaryButton(if (busy) "Turning on…" else "Turn on monitor", act)
-    else GhostButton(if (busy) "Turning on…" else "Turn on monitor", onClick = act)
-}
-
-/** One-time pairing with the tablet's own Wireless debugging, so BeyondPad can switch the monitor on. */
-@Composable
-private fun MonitorSwitch(activity: MainActivity) {
-    val adb by SelfAdb.state.collectAsStateWithLifecycle()
-    val settings by Prefs.settings.collectAsStateWithLifecycle()
-    var code by rememberSaveable { mutableStateOf("") }
-
-    Label("Monitor switch")
-    Group {
-        if (settings.adbPaired) {
-            Item(
-                "Paired with Wireless debugging",
-                adb.message.ifEmpty { "Turns the monitor on whenever it is plugged in." },
-                dot = when (adb.link) { AdbLink.CONNECTED -> BP.Good; AdbLink.UNREACHABLE -> BP.Warn; else -> BP.TextFaint },
-            )
-            Item("Switch on automatically", "When a monitor or hub is plugged in", trailing = {
-                Toggle(settings.autoEnableMonitor) { on -> Prefs.update { it.copy(autoEnableMonitor = on) } }
-            })
-            Item("Forget pairing", null, onClick = { SelfAdb.forget() }, last = true)
-        } else {
-            Column(Modifier.padding(18.dp)) {
-                Text(
-                    "Android 16 on this tablet keeps a new monitor switched off. BeyondPad can switch it on through Wireless debugging, the same way a computer does. Pair once:",
-                    color = BP.TextDim, fontSize = 14.sp, lineHeight = 20.sp,
-                )
-                Spacer(Modifier.height(10.dp))
-                listOf(
-                    "Stay on Wi-Fi. Open Developer options and turn on Wireless debugging.",
-                    "Tap Pair device with pairing code. Keep that dialog open.",
-                    "Pull down the BeyondPad notification and type the 6-digit code into it.",
-                ).forEachIndexed { i, t ->
-                    Row(Modifier.padding(vertical = 4.dp)) {
-                        Text("${i + 1}", color = BP.Accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(22.dp))
-                        Text(t, color = BP.Text, fontSize = 14.sp, lineHeight = 20.sp)
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    PrimaryButton("Start pairing") {
-                        PairingReceiver.show(activity)
-                        runCatching { activity.startActivity(SystemAccess.developerSettingsIntent()) }
-                            .onFailure { activity.toast("Turn on Developer options first: Settings › About tablet › tap Build number 7 times.") }
-                    }
-                }
-                Spacer(Modifier.height(14.dp))
-                Text("Using split screen instead? Type the code here:", color = BP.TextFaint, fontSize = 12.sp)
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = code, onValueChange = { v -> code = v.filter { it.isDigit() }.take(6) },
-                        singleLine = true, placeholder = { Text("123456") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = BP.Accent, unfocusedBorderColor = BP.Outline),
-                        modifier = Modifier.width(160.dp),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    GhostButton(if (adb.link == AdbLink.PAIRING) "Pairing…" else "Pair", enabled = code.length == 6 && adb.link != AdbLink.PAIRING) {
-                        SelfAdb.pair(code) { ok, msg -> activity.toast(msg); if (ok) PairingReceiver.dismiss(activity) }
-                    }
-                }
-                if (adb.message.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(adb.message, color = if (adb.link == AdbLink.NOT_PAIRED) BP.Warn else BP.TextDim, fontSize = 13.sp)
-                }
             }
         }
     }
@@ -482,7 +392,6 @@ private fun DesktopTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick: 
 private fun AdvancedTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick: Int) {
     val caps by CapabilityProbe.capabilities.collectAsStateWithLifecycle()
     val events by DisplayRepository.events.collectAsStateWithLifecycle()
-    val settings by Prefs.settings.collectAsStateWithLifecycle()
     val all = remember(tick, ext) { DisplayRepository.allDisplaysSummary() }
     fun yn(b: Boolean?) = when (b) { true -> "Yes"; false -> "No"; null -> "Unknown" }
 
@@ -503,26 +412,6 @@ private fun AdvancedTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick:
             Spacer(Modifier.height(10.dp))
             GhostButton("Run capability test", enabled = ext != null) { CapabilityProbe.runLaunchTest(activity) }
 
-            Spacer(Modifier.height(28.dp))
-            Label("Developer options (Android)")
-            Group {
-                if (caps.writeSecureSettings || settings.adbPaired) {
-                    DevToggle(activity, "Force desktop mode", "Restart needed", SystemAccess.KEY_FORCE_DESKTOP, caps.forceDesktopSetting, tick)
-                    DevToggle(activity, "Enable freeform windows", null, SystemAccess.KEY_FREEFORM, caps.freeformSetting, tick)
-                    DevToggle(activity, "Force activities resizable", null, SystemAccess.KEY_FORCE_RESIZABLE, caps.forceResizableSetting, tick, last = true)
-                } else {
-                    Item("Force desktop mode", null, value = yn(caps.forceDesktopSetting))
-                    Item("Enable freeform windows", null, value = yn(caps.freeformSetting))
-                    Item(
-                        "Let BeyondPad change these", SystemAccess.grantCommand(activity), mono = true,
-                        onClick = {
-                            activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("adb", SystemAccess.grantCommand(activity)))
-                            activity.toast("ADB command copied")
-                        },
-                        trailing = { Text("Copy", color = BP.Accent, fontSize = 14.sp) }, last = true,
-                    )
-                }
-            }
         },
         right = {
             Label("Displays reported by Android")
@@ -535,22 +424,6 @@ private fun AdvancedTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick:
             }
         },
     )
-}
-
-@Composable
-private fun DevToggle(activity: MainActivity, title: String, sub: String?, key: String, value: Boolean?, tick: Int, last: Boolean = false) {
-    Item(title, sub, last = last, trailing = {
-        Toggle(value == true) { on ->
-            val done = { ok: Boolean ->
-                activity.toast(if (ok) "$title ${if (on) "on" else "off"}" else "The system rejected the change")
-                DisplayRepository.log("Setting $key → ${if (on) 1 else 0}: ${if (ok) "accepted" else "rejected"}")
-                CapabilityProbe.refreshStatic(activity)
-                activity.resumeTick.intValue = tick + 1
-            }
-            if (SystemAccess.hasWriteSecureSettings(activity)) done(SystemAccess.writeGlobal(activity, key, on))
-            else SelfAdb.putGlobal(key, if (on) 1 else 0, done)
-        }
-    })
 }
 
 // ───────────────────────── building blocks ─────────────────────────

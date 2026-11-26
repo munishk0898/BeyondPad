@@ -9,7 +9,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import com.beyondpad.app.desktop.LaunchProbeActivity
-import com.beyondpad.app.system.SystemAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,11 +48,6 @@ data class Capabilities(
     val device: String = "${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})",
     val freeformFeature: Boolean = false,
     val pcFeature: Boolean = false,
-    val forceDesktopSetting: Boolean? = null,
-    val freeformSetting: Boolean? = null,
-    val forceResizableSetting: Boolean? = null,
-    val developerOptions: Boolean = false,
-    val writeSecureSettings: Boolean = false,
     val secondaryHomeApps: List<String> = emptyList(),
     val externalDisplayCount: Int = 0,
     val activityStartAllowed: Boolean? = null,
@@ -84,11 +78,6 @@ object CapabilityProbe {
         _caps.value = _caps.value.copy(
             freeformFeature = pm.hasSystemFeature(PackageManager.FEATURE_FREEFORM_WINDOW_MANAGEMENT),
             pcFeature = pm.hasSystemFeature(PackageManager.FEATURE_PC),
-            forceDesktopSetting = SystemAccess.isOn(ctx, SystemAccess.KEY_FORCE_DESKTOP),
-            freeformSetting = SystemAccess.isOn(ctx, SystemAccess.KEY_FREEFORM),
-            forceResizableSetting = SystemAccess.isOn(ctx, SystemAccess.KEY_FORCE_RESIZABLE),
-            developerOptions = SystemAccess.developerOptionsEnabled(ctx),
-            writeSecureSettings = SystemAccess.hasWriteSecureSettings(ctx),
             secondaryHomeApps = homes,
             externalDisplayCount = ext.size,
             activityStartAllowed = allowed,
