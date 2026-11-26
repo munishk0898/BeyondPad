@@ -38,7 +38,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Monitor
 import androidx.compose.material.icons.filled.Warning
@@ -295,7 +295,7 @@ fun Dashboard(activity: MainActivity) {
 
         // 8. Diagnostics
         item(span = StaggeredGridItemSpan.FullLine) {
-            Card("Diagnostics and event log", Icons.Filled.HelpOutline) {
+            Card("Diagnostics and event log", Icons.AutoMirrored.Filled.HelpOutline) {
                 Text("All displays reported by Android", color = BP.Text, fontWeight = FontWeight.Medium)
                 allDisplays.forEach { Mono(it) }
                 Spacer(Modifier.height(10.dp))
@@ -392,7 +392,7 @@ private fun MonitorDetails(d: ExternalDisplayInfo) {
         val (icon, tint) = when (ok) {
             true -> Icons.Filled.CheckCircle to BP.Good
             false -> Icons.Filled.Error to BP.Bad
-            null -> Icons.Filled.HelpOutline to BP.TextDim
+            null -> Icons.AutoMirrored.Filled.HelpOutline to BP.TextDim
         }
         Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))

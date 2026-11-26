@@ -55,6 +55,7 @@ object SystemAccess {
 
     fun hasUsageAccess(ctx: Context): Boolean {
         val ops = ctx.getSystemService(AppOpsManager::class.java)
+        @Suppress("DEPRECATION")
         val mode = ops.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), ctx.packageName)
         return mode == AppOpsManager.MODE_ALLOWED
     }

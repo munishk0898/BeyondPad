@@ -4,6 +4,7 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.view.Display
 import android.view.Surface
+import androidx.annotation.RequiresApi
 
 /** One supported mode of a display, copied out of [Display.Mode] so it is safe to keep in UI state. */
 data class ModeInfo(
@@ -90,15 +91,14 @@ data class ExternalDisplayInfo(
             @Suppress("DEPRECATION")
             val hdrTypes = display.hdrCapabilities?.supportedHdrTypes?.map { hdrName(it) } ?: emptyList()
 
-            val product = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) display.deviceProductInfo else null
+            val product = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) productOf(display) else null
             val flags = display.flags
             return ExternalDisplayInfo(
                 displayId = display.displayId,
                 name = display.name ?: "Display ${display.displayId}",
-                manufacturer = product?.manufacturerPnpId,
+                manufacturer = product?.manufacturer,
                 productName = product?.name,
-                modelYear = product?.modelYear?.takeIf { it > 0 }
-                    ?: product?.manufactureYear?.takeIf { it > 0 },
+                modelYear = product?.year,
                 currentMode = current,
                 nativeMode = NativeModePicker.native(modes),
                 supportedModes = modes,
@@ -114,6 +114,15 @@ data class ExternalDisplayInfo(
                 isPrivate = flags and Display.FLAG_PRIVATE != 0,
                 state = display.state,
             )
+        }
+
+        private data class Product(val manufacturer: String?, val name: String?, val year: Int?)
+
+        @RequiresApi(Build.VERSION_CODES.S)
+        private fun productOf(display: Display): Product? {
+            val p = display.deviceProductInfo ?: return null
+            val year = p.modelYear.takeIf { it > 0 } ?: p.manufactureYear.takeIf { it > 0 }
+            return Product(p.manufacturerPnpId, p.name, year)
         }
 
         private fun Display.Mode.toInfo(): ModeInfo {
