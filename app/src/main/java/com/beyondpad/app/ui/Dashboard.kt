@@ -482,6 +482,7 @@ private fun DesktopTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick: 
 private fun AdvancedTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick: Int) {
     val caps by CapabilityProbe.capabilities.collectAsStateWithLifecycle()
     val events by DisplayRepository.events.collectAsStateWithLifecycle()
+    val settings by Prefs.settings.collectAsStateWithLifecycle()
     val all = remember(tick, ext) { DisplayRepository.allDisplaysSummary() }
     fun yn(b: Boolean?) = when (b) { true -> "Yes"; false -> "No"; null -> "Unknown" }
 
@@ -505,7 +506,7 @@ private fun AdvancedTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick:
             Spacer(Modifier.height(28.dp))
             Label("Developer options (Android)")
             Group {
-                if (caps.writeSecureSettings || Prefs.settings.value.adbPaired) {
+                if (caps.writeSecureSettings || settings.adbPaired) {
                     DevToggle(activity, "Force desktop mode", "Restart needed", SystemAccess.KEY_FORCE_DESKTOP, caps.forceDesktopSetting, tick)
                     DevToggle(activity, "Enable freeform windows", null, SystemAccess.KEY_FREEFORM, caps.freeformSetting, tick)
                     DevToggle(activity, "Force activities resizable", null, SystemAccess.KEY_FORCE_RESIZABLE, caps.forceResizableSetting, tick, last = true)

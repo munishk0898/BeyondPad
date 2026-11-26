@@ -44,22 +44,41 @@ change the system's global output mode, or override OEM restrictions. These need
 
 ## 2. Install
 
-1. Download `BeyondPad-1.1.0-release.apk` to the tablet.
+1. Download `BeyondPad-1.2.0-release.apk` to the tablet.
 2. Open it and allow "Install unknown apps" for your browser or file manager when asked.
 3. Open BeyondPad and allow notifications.
 4. Optional:
    - **Display over other apps**: lets BeyondPad open the desktop on the monitor by itself when you plug it in. Without it, tap the notification instead.
    - **Usage access**: shows which taskbar apps are active right now.
 
-The debug APK (`BeyondPad-1.1.0-debug.apk`, package `com.beyondpad.app.debug`) can be installed next to the release build.
+The debug APK (`BeyondPad-1.2.0-debug.apk`, package `com.beyondpad.app.debug`) can be installed next to the release build.
 
 Install from a computer instead:
 
 ```
-adb install -r BeyondPad-1.1.0-release.apk
+adb install -r BeyondPad-1.2.0-release.apk
 ```
 
-## 3. First run on the Pad 3
+## 3. Why the monitor stayed dark, and the one-time pairing
+
+Diagnostics from the Pad 3 (OxygenOS 16.0.10.600) showed that video does reach the monitor
+(SurfaceFlinger lists it), but Android 16 creates the monitor as a **disabled** display and waits
+for a confirmation (`enable_waiting_confirmation_before_mirroring`) that OxygenOS never shows. Apps
+can't see a disabled display, and only the shell user may enable it (`cmd display enable-display`).
+
+BeyondPad 1.2.0 can do this itself through the tablet's own Wireless debugging, the same way
+`adb` on a computer does. Pair once:
+
+1. Connect to Wi-Fi. Turn on **Developer options > Wireless debugging**.
+2. In BeyondPad, Overview > Monitor switch > **Start pairing**.
+3. Tap **Pair device with pairing code**, keep the dialog open, pull down the BeyondPad
+   notification and type the 6-digit code into it.
+
+After pairing BeyondPad also grants itself `WRITE_SECURE_SETTINGS`, and it switches the monitor
+on automatically whenever a monitor or hub is plugged in, as long as Wireless debugging stays on.
+If Android forgets the pairing (for example after it switches Wireless debugging off), pair again.
+
+## 4. First run on the Pad 3
 
 1. Connect the USB-C to HDMI adapter and the monitor.
 2. Look at **Overview**. The drawing and the headline show one of four states: second screen ready, monitor hidden by OxygenOS, hub with no video signal, or nothing connected. The **Next** list says what to do for that state.
@@ -67,7 +86,7 @@ adb install -r BeyondPad-1.1.0-release.apk
 4. Tap **Open desktop on monitor**. Use the Start button (or Meta / Ctrl+Space) and click an app.
 5. Right-click or long-press any app for: open in a window, open full screen, open a new window, open on the tablet, pin.
 
-## 4. ADB commands (optional)
+## 5. ADB commands (optional)
 
 Turn on Developer options (Settings > About tablet > tap Build number 7 times) and USB debugging.
 
@@ -100,7 +119,7 @@ adb shell wm density 160 -d <ID>                                                
 adb shell getprop ro.build.display.id                                               # exact OxygenOS build
 ```
 
-## 5. OnePlus Pad 3 testing guide
+## 6. OnePlus Pad 3 testing guide
 
 Write down the OxygenOS build (Settings > About tablet) and the monitor model before testing.
 
@@ -122,7 +141,7 @@ Write down the OxygenOS build (Settings > About tablet) and the monitor model be
 
 If something misbehaves, take a screenshot of the Diagnostics card (all displays plus the event log).
 
-## 6. Build from source
+## 7. Build from source
 
 Requirements: JDK 17 and Android SDK platform 36. Android Studio Narwhal or newer opens the project directly.
 
@@ -137,7 +156,7 @@ Release signing reads `BEYONDPAD_KEYSTORE`, `BEYONDPAD_KEYSTORE_PASSWORD`, `BEYO
 GitHub Actions (`.github/workflows/build.yml`) builds both APKs on every push and publishes them,
 with the build log, to the `ci-output` branch.
 
-## 7. Project layout
+## 8. Project layout
 
 ```
 app/src/main/java/com/beyondpad/app/
@@ -159,5 +178,6 @@ app/src/main/java/com/beyondpad/app/
     DisplayMonitorService.kt    foreground service: connect/disconnect, auto-open
     BootReceiver.kt
   system/SystemAccess.kt        developer settings, overlay/usage permissions
+  adb/                          one-time Wireless debugging pairing, enables the disabled monitor
   ui/                           dashboard (Compose, dark theme with blue accents)
 ```
