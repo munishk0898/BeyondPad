@@ -8,58 +8,45 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DesktopWindows
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Monitor
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,393 +55,516 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.beyondpad.app.Prefs
 import com.beyondpad.app.desktop.DesktopLauncher
 import com.beyondpad.app.display.CapabilityProbe
-import com.beyondpad.app.display.DesktopVerdict
+import com.beyondpad.app.display.ConnectionSignals
 import com.beyondpad.app.display.DisplayRepository
 import com.beyondpad.app.display.ExternalDisplayInfo
 import com.beyondpad.app.display.LaunchTest
+import com.beyondpad.app.display.LinkState
 import com.beyondpad.app.display.ModeController
 import com.beyondpad.app.display.ModeResult
 import com.beyondpad.app.display.NativeModePicker
+import com.beyondpad.app.display.Signals
 import com.beyondpad.app.service.DisplayMonitorService
 import com.beyondpad.app.system.SystemAccess
 import com.beyondpad.app.ui.theme.BP
 
-@OptIn(ExperimentalLayoutApi::class)
+private val TABS = listOf("Overview", "Display", "Desktop", "Advanced")
+
 @Composable
 fun Dashboard(activity: MainActivity) {
     val displays by DisplayRepository.externalDisplays.collectAsStateWithLifecycle()
+    val signals by ConnectionSignals.signals.collectAsStateWithLifecycle()
     val caps by CapabilityProbe.capabilities.collectAsStateWithLifecycle()
-    val settings by Prefs.settings.collectAsStateWithLifecycle()
-    val modeStatus by ModeController.status.collectAsStateWithLifecycle()
-    val events by DisplayRepository.events.collectAsStateWithLifecycle()
     val tick = activity.resumeTick.intValue
-    val presentationOn by activity.presentationOn
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     val ext = displays.firstOrNull()
+    val link = ConnectionSignals.linkState(displays.size, signals)
 
-    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { activity.resumeTick.intValue++ }
-    val notifGranted = remember(tick) {
-        Build.VERSION.SDK_INT < 33 ||
-            activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-    }
-    val overlay = remember(tick) { SystemAccess.canDrawOverlays(activity) }
-    val usage = remember(tick) { SystemAccess.hasUsageAccess(activity) }
-    val allDisplays = remember(tick, displays) { DisplayRepository.allDisplaysSummary() }
-
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Adaptive(440.dp),
-        modifier = Modifier.fillMaxSize().background(BP.Background).windowInsetsPadding(WindowInsets.safeDrawing),
-        contentPadding = PaddingValues(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalItemSpacing = 16.dp,
-    ) {
-        item(span = StaggeredGridItemSpan.FullLine) { Header(caps.device, caps.androidRelease, caps.sdk, caps.build) }
-
-        // 1. Connection status
-        item {
-            Card("HDMI / USB-C connection", Icons.Filled.Monitor) {
-                if (ext == null) {
-                    StatusLine(false, "No external display visible to apps")
-                    Dim("Plug in your USB-C to HDMI adapter. If the monitor lights up with a copy of the tablet screen but this stays empty, OxygenOS is mirroring at system level and the monitor is not exposed to apps.")
-                } else {
-                    StatusLine(true, "Connected: ${ext.name}")
-                    KV("Display ID", ext.displayId.toString())
-                    KV("Current mode", ext.currentMode?.label ?: "Unknown")
-                    if (displays.size > 1) Dim("${displays.size} external displays detected; BeyondPad manages the first one.")
-                }
-            }
-        }
-
-        // 2. Extended desktop availability
-        item {
-            Card("Extended desktop availability", Icons.Filled.DesktopWindows) {
-                val color = when (caps.verdict) {
-                    DesktopVerdict.SYSTEM_DESKTOP, DesktopVerdict.APP_DESKTOP -> BP.Good
-                    DesktopVerdict.PRESENTATION_ONLY -> BP.Warn
-                    DesktopVerdict.NO_DISPLAY -> BP.Bad
-                    DesktopVerdict.UNKNOWN -> BP.TextDim
-                }
-                Text(caps.verdict.title, color = color, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
-                Spacer(Modifier.height(4.dp))
-                Dim(caps.verdict.detail)
-                Spacer(Modifier.height(10.dp))
-                Check("Monitor exposed to apps as a separate display", ext != null)
-                Check("System allows opening activities on it", caps.activityStartAllowed)
-                Check(
-                    "Launch test: ${launchLabel(caps.launchTest)}",
-                    when (caps.launchTest) {
-                        LaunchTest.WINDOWED, LaunchTest.FULLSCREEN -> true
-                        LaunchTest.REFUSED, LaunchTest.LANDED_ELSEWHERE -> false
-                        else -> null
-                    },
-                )
-                if (caps.launchTestDetail.isNotEmpty()) Mono(caps.launchTestDetail)
-                Check("Free-form window manager feature (android.software.freeform_window_management)", caps.freeformFeature)
-                Check("Developer setting: Force desktop mode", caps.forceDesktopSetting)
-                Check("Developer setting: Enable freeform windows", caps.freeformSetting)
-                Check(
-                    "System secondary-display launcher present" +
-                        if (caps.secondaryHomeApps.isNotEmpty()) " (${caps.secondaryHomeApps.joinToString()})" else "",
-                    caps.secondaryHomeApps.isNotEmpty(),
-                )
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Primary("Run capability test", enabled = ext != null && caps.launchTest != LaunchTest.RUNNING) {
-                        CapabilityProbe.runLaunchTest(activity)
-                    }
-                }
-            }
-        }
-
-        // 3. Monitor details
-        item {
-            Card("External monitor details", Icons.Filled.Info) {
-                if (ext == null) Dim("Connect a monitor to see its details.") else MonitorDetails(ext)
-            }
-        }
-
-        // 4. Resolution and refresh rate
-        item {
-            Card("Resolution and refresh rate", Icons.Filled.Monitor) {
-                if (ext == null) {
-                    Dim("Available modes appear here once a monitor is connected.")
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Automatic resolution", color = BP.Text, fontWeight = FontWeight.Medium)
-                            Dim("Native resolution at the highest refresh rate: ${NativeModePicker.best(ext.supportedModes)?.label ?: "n/a"}")
-                        }
-                        BPSwitch(settings.autoResolution) { on -> Prefs.update { it.copy(autoResolution = on) }; ModeController.applyToDesktop() }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    ext.supportedModes.forEach { m ->
-                        val key = ModeController.keyOf(m)
-                        val selected = if (settings.autoResolution) ModeController.targetMode(ext)?.modeId == m.modeId else settings.manualModeKey == key
-                        val isCurrent = ext.currentMode?.modeId == m.modeId
-                        Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                                .clickable(enabled = !settings.autoResolution) {
-                                    Prefs.update { it.copy(manualModeKey = key) }
-                                    ModeController.applyToDesktop()
-                                }
-                                .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(
-                                selected = selected, enabled = !settings.autoResolution,
-                                onClick = { Prefs.update { it.copy(manualModeKey = key) }; ModeController.applyToDesktop() },
-                                colors = RadioButtonDefaults.colors(selectedColor = BP.Accent),
-                            )
-                            Text(m.label, color = BP.Text, modifier = Modifier.weight(1f))
-                            if (m.modeId == ext.nativeMode?.modeId) Tag("native", BP.Accent)
-                            if (isCurrent) Tag("active", BP.Good)
-                            if (m.hdrTypes.isNotEmpty()) Tag("HDR", BP.Warn)
-                        }
-                    }
-                    if (ext.supportedModes.size <= 1) {
-                        Dim("The system exposes only one mode for this monitor, so there is nothing to switch. OxygenOS may fix the output mode (reports suggest 60 Hz).")
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    val c = when (modeStatus.result) {
-                        ModeResult.VERIFIED -> BP.Good
-                        ModeResult.NOT_APPLIED -> BP.Warn
-                        ModeResult.NEEDS_DESKTOP -> BP.TextDim
-                        else -> BP.Text
-                    }
-                    if (modeStatus.message.isNotEmpty()) Text(modeStatus.message, color = c, fontSize = 13.sp)
-                    Dim("Modes are applied through BeyondPad's desktop window on the monitor and are only reported as applied after the display confirms it. They last while the desktop (or presentation output) is open.")
-                }
-            }
-        }
-
-        // 5. Desktop controls
-        item {
-            Card("Desktop on the monitor", Icons.Filled.DesktopWindows) {
-                val running = DesktopLauncher.runningOnDisplay >= 0
-                StatusLine(running, if (running) "BeyondPad desktop is open on display ${DesktopLauncher.runningOnDisplay}" else "Desktop not open")
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Primary("Open desktop on monitor", enabled = ext != null) { activity.openDesktop() }
-                    Secondary("Close desktop") { DesktopLauncher.close(activity) }
-                    Secondary(if (presentationOn) "Stop presentation output" else "Presentation output (fallback)") { activity.togglePresentation() }
-                }
-                Spacer(Modifier.height(10.dp))
-                Toggle("Open desktop automatically when a monitor connects", settings.autoOpenDesktop) { on ->
-                    Prefs.update { it.copy(autoOpenDesktop = on) }
-                }
-                Toggle("Watch for monitors in the background", settings.monitorService) { on ->
-                    Prefs.update { it.copy(monitorService = on) }
-                    if (on) DisplayMonitorService.start(activity) else DisplayMonitorService.stop(activity)
-                }
-                Toggle("Open apps in windows (honoured only if the system has desktop windowing)", settings.freeformWindows) { on ->
-                    Prefs.update { it.copy(freeformWindows = on) }
-                }
-                if (settings.autoOpenDesktop && !overlay) {
-                    Dim("Android blocks apps from opening screens from the background. Allow 'Display over other apps' below so the desktop can open by itself; otherwise tap the notification.")
-                }
-            }
-        }
-
-        // 6. Permissions
-        item {
-            Card("Permissions", Icons.Filled.CheckCircle) {
-                PermRow("Notifications (connect / disconnect alerts)", notifGranted) {
-                    if (Build.VERSION.SDK_INT >= 33) notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                PermRow("Display over other apps (auto-open desktop on connect)", overlay) {
-                    activity.startActivity(SystemAccess.overlaySettingsIntent(activity))
-                }
-                PermRow("Usage access (show which taskbar apps are active)", usage) {
-                    activity.startActivity(SystemAccess.usageSettingsIntent())
-                }
-                PermRow("Secure settings via ADB (developer desktop toggles)", caps.writeSecureSettings, null)
-            }
-        }
-
-        // 7. System desktop settings (ADB)
-        item {
-            Card("System desktop mode (OxygenOS / Android)", Icons.Filled.Warning) {
-                Dim("These are Android developer options, not BeyondPad features. Whether OxygenOS honours them on the Pad 3 can only be confirmed on the device; the capability test above shows the real result.")
-                Spacer(Modifier.height(8.dp))
-                if (caps.writeSecureSettings) {
-                    SettingToggle(activity, "Force desktop mode on external displays (reboot needed)", SystemAccess.KEY_FORCE_DESKTOP, caps.forceDesktopSetting, tick)
-                    SettingToggle(activity, "Enable freeform windows", SystemAccess.KEY_FREEFORM, caps.freeformSetting, tick)
-                    SettingToggle(activity, "Force activities to be resizable", SystemAccess.KEY_FORCE_RESIZABLE, caps.forceResizableSetting, tick)
-                } else {
-                    Dim("To let BeyondPad switch these for you, run this once from a computer with USB debugging on:")
-                    CopyLine(activity, SystemAccess.grantCommand(activity))
-                    Dim("Or set them yourself in Developer options.")
-                }
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Secondary("Developer options") { runCatching { activity.startActivity(SystemAccess.developerSettingsIntent()) }.onFailure { activity.toast("Enable Developer options first (tap Build number 7 times).") } }
-                    Secondary("Display settings") { runCatching { activity.startActivity(SystemAccess.displaySettingsIntent()) } }
-                    Secondary("Screen cast settings") { runCatching { activity.startActivity(SystemAccess.castSettingsIntent()) }.onFailure { activity.toast("Not available on this ROM.") } }
-                }
-            }
-        }
-
-        // 8. Diagnostics
-        item(span = StaggeredGridItemSpan.FullLine) {
-            Card("Diagnostics and event log", Icons.AutoMirrored.Filled.HelpOutline) {
-                Text("All displays reported by Android", color = BP.Text, fontWeight = FontWeight.Medium)
-                allDisplays.forEach { Mono(it) }
-                Spacer(Modifier.height(10.dp))
-                Text("Events", color = BP.Text, fontWeight = FontWeight.Medium)
-                if (events.isEmpty()) Dim("No events yet.")
-                events.take(30).forEach { Mono("${it.timeLabel}  ${it.message}") }
-            }
-        }
-    }
-}
-
-private fun launchLabel(t: LaunchTest) = when (t) {
-    LaunchTest.NOT_RUN -> "not run"
-    LaunchTest.RUNNING -> "running…"
-    LaunchTest.FULLSCREEN -> "apps open full screen on the monitor"
-    LaunchTest.WINDOWED -> "apps open in resizable windows on the monitor"
-    LaunchTest.LANDED_ELSEWHERE -> "system redirected the window to another display"
-    LaunchTest.REFUSED -> "system refused"
-}
-
-@Composable
-private fun Header(device: String, release: String, sdk: Int, build: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(BP.AccentSoft), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.DesktopWindows, null, tint = BP.Accent)
-        }
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text("BeyondPad", color = BP.Text, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-            Text("$device · Android $release (API $sdk) · $build", color = BP.TextDim, fontSize = 13.sp)
-        }
-    }
-}
-
-@Composable
-private fun Card(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(BP.Surface)
-            .border(1.dp, BP.Outline, RoundedCornerShape(16.dp)).padding(18.dp),
+        Modifier.fillMaxSize().background(BP.Background).windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = BP.Accent, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(title.uppercase(), color = BP.TextDim, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
+        TopBar(tab, onTab = { tab = it }, build = "${caps.build} · Android ${caps.androidRelease}")
+        Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 24.dp)) {
+                when (tab) {
+                    0 -> Overview(activity, link, ext, signals) { tab = it }
+                    1 -> DisplayTab(ext)
+                    2 -> DesktopTab(activity, ext, tick)
+                    else -> AdvancedTab(activity, ext, tick)
+                }
+            }
         }
-        Spacer(Modifier.height(12.dp))
-        content()
     }
 }
+
+// ───────────────────────── top bar ─────────────────────────
 
 @Composable
-private fun MonitorDetails(d: ExternalDisplayInfo) {
-    KV("Name", d.name)
-    d.manufacturer?.let { KV("Manufacturer (PnP ID)", it) }
-    d.productName?.let { KV("Product", it) }
-    d.modelYear?.let { KV("Model year", it.toString()) }
-    KV("Display ID", d.displayId.toString())
-    KV("Native resolution", d.nativeMode?.let { "${it.width} × ${it.height}" } ?: "Unknown")
-    KV("Current resolution", d.currentMode?.let { "${it.width} × ${it.height}" } ?: "Unknown")
-    KV("Refresh rate", d.currentMode?.let { "%.2f Hz".format(it.refreshRate) } ?: "Unknown")
-    KV("Refresh rates offered", d.supportedModes.map { "%.0f".format(it.refreshRate) }.distinct().joinToString(", ") { "$it Hz" })
-    KV("Supported modes", d.supportedModes.size.toString())
-    KV("HDR", if (d.hdrTypes.isEmpty()) "Not reported" else d.hdrTypes.joinToString())
-    KV("Wide colour gamut", if (d.isWideColorGamut) "Yes" else "No")
-    KV("Density", d.densityLabel)
-    KV("Physical DPI", "%.0f × %.0f".format(d.xdpi, d.ydpi))
-    KV("Orientation", d.orientationLabel)
-    KV("State", d.stateLabel)
-    KV("Flags", listOfNotNull(if (d.isPresentation) "presentation" else null, if (d.isSecure) "secure (HDCP)" else null).joinToString().ifEmpty { "none" })
-}
-
-@Composable private fun KV(k: String, v: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-        Text(k, color = BP.TextDim, fontSize = 13.sp, modifier = Modifier.width(170.dp))
-        Text(v, color = BP.Text, fontSize = 13.sp)
-    }
-}
-
-@Composable private fun Dim(text: String) = Text(text, color = BP.TextDim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 2.dp))
-
-@Composable private fun Mono(text: String) =
-    Text(text, color = BP.TextDim, fontSize = 12.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(vertical = 1.dp))
-
-@Composable private fun StatusLine(ok: Boolean, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
-        Box(Modifier.size(10.dp).clip(CircleShape).background(if (ok) BP.Good else BP.Bad))
-        Spacer(Modifier.width(10.dp))
-        Text(text, color = BP.Text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable private fun Check(text: String, ok: Boolean?) {
-    Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.Top) {
-        val (icon, tint) = when (ok) {
-            true -> Icons.Filled.CheckCircle to BP.Good
-            false -> Icons.Filled.Error to BP.Bad
-            null -> Icons.AutoMirrored.Filled.HelpOutline to BP.TextDim
+private fun TopBar(selected: Int, onTab: (Int) -> Unit, build: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("BeyondPad", color = BP.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp)
+        Spacer(Modifier.width(40.dp))
+        TABS.forEachIndexed { i, t ->
+            Column(
+                Modifier.clip(RoundedCornerShape(6.dp)).clickable { onTab(i) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(t, color = if (i == selected) BP.Text else BP.TextDim, fontSize = 15.sp, fontWeight = if (i == selected) FontWeight.SemiBold else FontWeight.Normal)
+                Spacer(Modifier.height(6.dp))
+                Box(Modifier.width(22.dp).height(2.dp).background(if (i == selected) BP.Accent else Color.Transparent))
+            }
         }
-        Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = BP.Text, fontSize = 13.sp)
+        Spacer(Modifier.weight(1f))
+        Text(build, color = BP.TextFaint, fontSize = 12.sp)
     }
+    Box(Modifier.fillMaxWidth().padding(top = 4.dp).height(1.dp).background(BP.Outline))
 }
 
-@Composable private fun Tag(text: String, color: Color) {
-    Text(
-        text, color = color, fontSize = 11.sp,
-        modifier = Modifier.padding(start = 6.dp).border(1.dp, color, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+// ───────────────────────── overview ─────────────────────────
+
+private data class Advice(val title: String, val body: String, val steps: List<String>)
+
+private fun advice(link: LinkState, ext: ExternalDisplayInfo?, s: Signals): Advice = when (link) {
+    LinkState.READY -> Advice(
+        "Second screen ready",
+        "${ext?.name ?: "Monitor"} is available to apps as its own display.",
+        listOf(
+            "Open the desktop on the monitor.",
+            "Run the capability test under Advanced to see whether apps get free windows or open full screen.",
+        ),
+    )
+    LinkState.HIDDEN_BY_SYSTEM -> Advice(
+        "Monitor attached, but OxygenOS keeps it to itself",
+        "Android can see the monitor${s.hdmiAudioName?.let { " ($it)" } ?: ""}, but it has not been handed to apps as a second screen. This is what system-level mirroring looks like.",
+        listOf(
+            "Swipe down the notification shade right after plugging in. If there is a mirror / extend or screen projection prompt, choose extend.",
+            "Turn on Force desktop mode in Developer options, then restart the tablet with the hub still attached.",
+            "Come back here. If the cable line turns blue, the desktop can open.",
+        ),
+    )
+    LinkState.ADAPTER_NO_VIDEO -> Advice(
+        "Hub connected, no video signal",
+        "The tablet sees ${s.usb.firstOrNull { it.isHub }?.name ?: s.usb.first().name} on its port, but no monitor behind it.",
+        listOf(
+            "Look at the monitor. Blank or \"no signal\": the hub is not passing video from the tablet. It must support DisplayPort Alt Mode, and some hubs only do this for laptops.",
+            "Monitor shows a copy of the tablet: OxygenOS is mirroring privately. Turn on Force desktop mode in Developer options and restart.",
+            "Re-seat the HDMI cable, select the right input on the monitor, and try the hub's charging port with power connected.",
+        ),
+    )
+    LinkState.NOTHING -> Advice(
+        "Nothing connected",
+        "Plug a USB-C to HDMI adapter or hub into the tablet.",
+        listOf("Use the tablet's USB-C port with an adapter that supports DisplayPort Alt Mode."),
     )
 }
 
-@Composable private fun BPSwitch(checked: Boolean, onChange: (Boolean) -> Unit) =
-    Switch(checked, onChange, colors = SwitchDefaults.colors(checkedTrackColor = BP.Accent))
-
-@Composable private fun Toggle(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, color = BP.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
-        BPSwitch(checked, onChange)
+@Composable
+private fun Overview(activity: MainActivity, link: LinkState, ext: ExternalDisplayInfo?, s: Signals, goTo: (Int) -> Unit) {
+    val a = advice(link, ext, s)
+    val monitorText = when (link) {
+        LinkState.READY -> ext?.currentMode?.let { "${it.width} × ${it.height} · ${it.refreshRate.toInt()} Hz" } ?: "Ready"
+        LinkState.HIDDEN_BY_SYSTEM -> "Not shared with apps"
+        LinkState.ADAPTER_NO_VIDEO -> "No signal"
+        LinkState.NOTHING -> ""
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val wide = maxWidth > 900.dp
+        if (wide) {
+            Row(horizontalArrangement = Arrangement.spacedBy(48.dp)) {
+                Column(Modifier.weight(1.25f)) { Hero(activity, link, a, monitorText, goTo) }
+                Column(Modifier.weight(1f).padding(top = 8.dp)) { SignalsPanel(link, ext, s); Spacer(Modifier.height(28.dp)); Steps(a.steps) }
+            }
+        } else {
+            Column {
+                Hero(activity, link, a, monitorText, goTo)
+                Spacer(Modifier.height(28.dp)); SignalsPanel(link, ext, s); Spacer(Modifier.height(28.dp)); Steps(a.steps)
+            }
+        }
     }
 }
 
-@Composable private fun PermRow(text: String, granted: Boolean, onGrant: (() -> Unit)?) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            if (granted) Icons.Filled.CheckCircle else Icons.Filled.Error, null,
-            tint = if (granted) BP.Good else BP.Warn, modifier = Modifier.size(18.dp),
+@Composable
+private fun Hero(activity: MainActivity, link: LinkState, a: Advice, monitorText: String, goTo: (Int) -> Unit) {
+    Stage(link, monitorText, Modifier.fillMaxWidth().aspectRatio(1.9f))
+    Spacer(Modifier.height(20.dp))
+    Text(a.title, color = BP.Text, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, lineHeight = 36.sp, letterSpacing = (-0.4).sp)
+    Spacer(Modifier.height(8.dp))
+    Text(a.body, color = BP.TextDim, fontSize = 16.sp, lineHeight = 23.sp, modifier = Modifier.widthIn(max = 620.dp))
+    Spacer(Modifier.height(22.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        when (link) {
+            LinkState.READY -> {
+                PrimaryButton("Open desktop on monitor") { activity.openDesktop() }
+                GhostButton("Display settings") { goTo(1) }
+            }
+            LinkState.HIDDEN_BY_SYSTEM, LinkState.ADAPTER_NO_VIDEO -> {
+                PrimaryButton("Open Developer options") {
+                    runCatching { activity.startActivity(SystemAccess.developerSettingsIntent()) }
+                        .onFailure { activity.toast("Turn on Developer options first: Settings › About tablet › tap Build number 7 times.") }
+                }
+                GhostButton("Re-check") { ConnectionSignals.refresh(); DisplayRepository.refresh(); CapabilityProbe.refreshStatic(activity) }
+            }
+            LinkState.NOTHING -> GhostButton("Re-check") { ConnectionSignals.refresh(); DisplayRepository.refresh() }
+        }
+    }
+}
+
+@Composable
+private fun SignalsPanel(link: LinkState, ext: ExternalDisplayInfo?, s: Signals) {
+    Label("What the tablet sees")
+    Group {
+        Item("Second screen for apps", if (ext != null) "${ext.name}, ID ${ext.displayId}" else "None", dot = if (ext != null) BP.Good else BP.Bad)
+        Item("Monitor signal", if (s.hdmiAudio) "Detected${s.hdmiAudioName?.let { " · $it" } ?: ""}" else "Not detected", dot = if (s.hdmiAudio) BP.Good else BP.TextFaint)
+        Item(
+            "On the USB-C port",
+            if (s.usb.isEmpty()) "Nothing" else s.usb.joinToString { "${it.name} (${it.ids})" },
+            dot = if (s.usb.isNotEmpty()) BP.Good else BP.TextFaint,
         )
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = BP.Text, fontSize = 13.sp, modifier = Modifier.weight(1f))
-        if (!granted && onGrant != null) Secondary("Allow", onClick = onGrant)
-        if (!granted && onGrant == null) Text("optional", color = BP.TextDim, fontSize = 12.sp)
+        Item(
+            "Hidden displays",
+            if (s.hidden.isEmpty()) "None" else s.hidden.joinToString { "ID ${it.id} ${it.name}, ${it.reason}" },
+            dot = if (s.hidden.isNotEmpty()) BP.Warn else BP.TextFaint,
+            last = true,
+        )
+    }
+    if (link != LinkState.READY && !s.hdmiAudio) {
+        Spacer(Modifier.height(8.dp))
+        Text("Monitors without speakers may not report a signal, so check the screen itself too.", color = BP.TextFaint, fontSize = 12.sp)
     }
 }
 
-@Composable private fun SettingToggle(activity: MainActivity, text: String, key: String, value: Boolean?, tick: Int) {
-    Toggle(text, value == true) { on ->
-        val ok = SystemAccess.writeGlobal(activity, key, on)
-        activity.toast(if (ok) "Saved: $key = ${if (on) 1 else 0}" else "The system rejected the change to $key")
-        DisplayRepository.log("Setting $key → ${if (on) 1 else 0}: ${if (ok) "accepted" else "rejected"}")
-        CapabilityProbe.refreshStatic(activity)
-        activity.resumeTick.intValue = tick + 1
+@Composable
+private fun Steps(steps: List<String>) {
+    Label("Next")
+    steps.forEachIndexed { i, step ->
+        Row(Modifier.padding(vertical = 7.dp)) {
+            Text("${i + 1}", color = BP.Accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(26.dp))
+            Text(step, color = BP.Text, fontSize = 15.sp, lineHeight = 21.sp)
+        }
     }
 }
 
-@Composable private fun CopyLine(activity: MainActivity, text: String) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(8.dp)).background(BP.SurfaceHigh).padding(start = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text, color = BP.Text, fontSize = 12.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
-        IconButton(onClick = {
-            activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("adb", text))
-            activity.toast("Copied")
-        }) { Icon(Icons.Filled.ContentCopy, "Copy", tint = BP.Accent) }
+// ───────────────────────── display ─────────────────────────
+
+@Composable
+private fun DisplayTab(ext: ExternalDisplayInfo?) {
+    val settings by Prefs.settings.collectAsStateWithLifecycle()
+    val modeStatus by ModeController.status.collectAsStateWithLifecycle()
+    if (ext == null) { Empty("No second screen yet", "Resolution and refresh rate appear here once the monitor is available to apps."); return }
+
+    val cur = ext.currentMode
+    Text(cur?.let { "${it.width} × ${it.height}" } ?: "Unknown", color = BP.Text, fontSize = 48.sp, fontWeight = FontWeight.Light, letterSpacing = (-1).sp)
+    Text(
+        listOfNotNull(cur?.let { "%.2f Hz".format(it.refreshRate) }, ext.nativeMode?.let { "native ${it.width} × ${it.height}" }, ext.densityLabel).joinToString("  ·  "),
+        color = BP.TextDim, fontSize = 15.sp,
+    )
+    if (modeStatus.message.isNotEmpty()) {
+        Spacer(Modifier.height(8.dp))
+        Text(
+            modeStatus.message, fontSize = 14.sp,
+            color = when (modeStatus.result) { ModeResult.VERIFIED -> BP.Good; ModeResult.NOT_APPLIED -> BP.Warn; else -> BP.TextDim },
+        )
+    }
+    Spacer(Modifier.height(28.dp))
+
+    TwoColumns(
+        left = {
+            Label("Mode")
+            Group {
+                Item(
+                    "Automatic", "Native resolution, highest refresh rate (${NativeModePicker.best(ext.supportedModes)?.label ?: "n/a"})",
+                    trailing = { Toggle(settings.autoResolution) { on -> Prefs.update { it.copy(autoResolution = on) }; ModeController.applyToDesktop() } },
+                    last = true,
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            Label("Available modes")
+            Group {
+                ext.supportedModes.forEachIndexed { i, m ->
+                    val key = ModeController.keyOf(m)
+                    val chosen = if (settings.autoResolution) NativeModePicker.best(ext.supportedModes)?.modeId == m.modeId else settings.manualModeKey == key
+                    val tags = listOfNotNull(
+                        if (m.modeId == ext.nativeMode?.modeId) "native" else null,
+                        if (m.modeId == cur?.modeId) "active" else null,
+                        if (m.hdrTypes.isNotEmpty()) "HDR" else null,
+                    ).joinToString(" · ")
+                    Item(
+                        m.label, tags.ifEmpty { null },
+                        onClick = if (settings.autoResolution) null else ({
+                            Prefs.update { it.copy(manualModeKey = key) }; ModeController.applyToDesktop()
+                        }),
+                        trailing = { if (chosen) Icon(Icons.Filled.Check, null, tint = BP.Accent, modifier = Modifier.size(20.dp)) },
+                        last = i == ext.supportedModes.lastIndex,
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("A mode is applied through BeyondPad's window on the monitor and marked as applied only after the monitor reports it.", color = BP.TextFaint, fontSize = 12.sp)
+        },
+        right = {
+            Label("Monitor")
+            Group {
+                val rows = buildList {
+                    add("Name" to ext.name)
+                    ext.manufacturer?.let { add("Maker" to it) }
+                    ext.productName?.let { add("Product" to it) }
+                    ext.modelYear?.let { add("Year" to it.toString()) }
+                    add("Display ID" to ext.displayId.toString())
+                    add("Refresh rates" to ext.supportedModes.map { "%.0f".format(it.refreshRate) }.distinct().joinToString(", ") { "$it Hz" })
+                    add("HDR" to ext.hdrTypes.ifEmpty { listOf("Not reported") }.joinToString())
+                    add("Wide colour" to if (ext.isWideColorGamut) "Yes" else "No")
+                    add("Physical DPI" to "%.0f × %.0f".format(ext.xdpi, ext.ydpi))
+                    add("Orientation" to ext.orientationLabel)
+                    add("State" to ext.stateLabel)
+                    add("Secure output (HDCP)" to if (ext.isSecure) "Yes" else "No")
+                }
+                rows.forEachIndexed { i, (k, v) -> Item(k, null, value = v, last = i == rows.lastIndex) }
+            }
+        },
+    )
+}
+
+// ───────────────────────── desktop ─────────────────────────
+
+@Composable
+private fun DesktopTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick: Int) {
+    val settings by Prefs.settings.collectAsStateWithLifecycle()
+    val presentationOn by activity.presentationOn
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { activity.resumeTick.intValue++ }
+    val notif = remember(tick) {
+        Build.VERSION.SDK_INT < 33 || activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    }
+    val overlay = remember(tick) { SystemAccess.canDrawOverlays(activity) }
+    val usage = remember(tick) { SystemAccess.hasUsageAccess(activity) }
+    val running = DesktopLauncher.runningOnDisplay >= 0
+
+    TwoColumns(
+        left = {
+            Label("Desktop on the monitor")
+            Group {
+                Item("Status", null, value = if (running) "Open on display ${DesktopLauncher.runningOnDisplay}" else if (ext == null) "No second screen" else "Closed",
+                    dot = if (running) BP.Good else BP.TextFaint)
+                Item("Open desktop", "Start menu, taskbar and pinned apps on the monitor", onClick = if (ext != null) ({ activity.openDesktop() }) else null)
+                Item("Close desktop", null, onClick = { DesktopLauncher.close(activity) })
+                Item(
+                    "Presentation output", "Fallback when apps can't open on the monitor. Shows BeyondPad's own screen only, not a desktop.",
+                    trailing = { Toggle(presentationOn) { activity.togglePresentation() } }, last = true,
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            Label("Behaviour")
+            Group {
+                Item("Open automatically on connect", null, trailing = { Toggle(settings.autoOpenDesktop) { on -> Prefs.update { it.copy(autoOpenDesktop = on) } } })
+                Item("Watch for monitors in the background", null, trailing = {
+                    Toggle(settings.monitorService) { on ->
+                        Prefs.update { it.copy(monitorService = on) }
+                        if (on) DisplayMonitorService.start(activity) else DisplayMonitorService.stop(activity)
+                    }
+                })
+                Item("Open apps in windows", "Only where the system supports desktop windowing", trailing = {
+                    Toggle(settings.freeformWindows) { on -> Prefs.update { it.copy(freeformWindows = on) } }
+                }, last = true)
+            }
+        },
+        right = {
+            Label("Permissions")
+            Group {
+                PermItem("Notifications", "Connect and disconnect alerts", notif) {
+                    if (Build.VERSION.SDK_INT >= 33) notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                PermItem("Display over other apps", "Lets the desktop open by itself when you plug in", overlay) {
+                    activity.startActivity(SystemAccess.overlaySettingsIntent(activity))
+                }
+                PermItem("Usage access", "Marks taskbar apps that are active", usage, last = true) {
+                    activity.startActivity(SystemAccess.usageSettingsIntent())
+                }
+            }
+        },
+    )
+}
+
+// ───────────────────────── advanced ─────────────────────────
+
+@Composable
+private fun AdvancedTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick: Int) {
+    val caps by CapabilityProbe.capabilities.collectAsStateWithLifecycle()
+    val events by DisplayRepository.events.collectAsStateWithLifecycle()
+    val all = remember(tick, ext) { DisplayRepository.allDisplaysSummary() }
+    fun yn(b: Boolean?) = when (b) { true -> "Yes"; false -> "No"; null -> "Unknown" }
+
+    TwoColumns(
+        left = {
+            Label("Capability")
+            Group {
+                Item("Verdict", null, value = caps.verdict.title)
+                Item("Apps may open on the monitor", null, value = yn(caps.activityStartAllowed))
+                Item("Launch test", caps.launchTestDetail.ifEmpty { null }, value = when (caps.launchTest) {
+                    LaunchTest.NOT_RUN -> "Not run"; LaunchTest.RUNNING -> "Running…"
+                    LaunchTest.FULLSCREEN -> "Full screen"; LaunchTest.WINDOWED -> "Free windows"
+                    LaunchTest.LANDED_ELSEWHERE -> "Redirected"; LaunchTest.REFUSED -> "Refused"
+                })
+                Item("Free-form window feature", null, value = yn(caps.freeformFeature))
+                Item("Secondary-display launcher", caps.secondaryHomeApps.ifEmpty { listOf("None") }.joinToString(), last = true)
+            }
+            Spacer(Modifier.height(10.dp))
+            GhostButton("Run capability test", enabled = ext != null) { CapabilityProbe.runLaunchTest(activity) }
+
+            Spacer(Modifier.height(28.dp))
+            Label("Developer options (Android)")
+            Group {
+                if (caps.writeSecureSettings) {
+                    DevToggle(activity, "Force desktop mode", "Restart needed", SystemAccess.KEY_FORCE_DESKTOP, caps.forceDesktopSetting, tick)
+                    DevToggle(activity, "Enable freeform windows", null, SystemAccess.KEY_FREEFORM, caps.freeformSetting, tick)
+                    DevToggle(activity, "Force activities resizable", null, SystemAccess.KEY_FORCE_RESIZABLE, caps.forceResizableSetting, tick, last = true)
+                } else {
+                    Item("Force desktop mode", null, value = yn(caps.forceDesktopSetting))
+                    Item("Enable freeform windows", null, value = yn(caps.freeformSetting))
+                    Item(
+                        "Let BeyondPad change these", SystemAccess.grantCommand(activity), mono = true,
+                        onClick = {
+                            activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("adb", SystemAccess.grantCommand(activity)))
+                            activity.toast("ADB command copied")
+                        },
+                        trailing = { Text("Copy", color = BP.Accent, fontSize = 14.sp) }, last = true,
+                    )
+                }
+            }
+        },
+        right = {
+            Label("Displays reported by Android")
+            Group { all.forEachIndexed { i, d -> Item(d, null, mono = true, last = i == all.lastIndex) } }
+            Spacer(Modifier.height(28.dp))
+            Label("Event log")
+            Group {
+                if (events.isEmpty()) Item("No events yet", null, last = true)
+                events.take(40).forEachIndexed { i, e -> Item(e.message, e.timeLabel, mono = true, last = i == minOf(39, events.lastIndex)) }
+            }
+        },
+    )
+}
+
+@Composable
+private fun DevToggle(activity: MainActivity, title: String, sub: String?, key: String, value: Boolean?, tick: Int, last: Boolean = false) {
+    Item(title, sub, last = last, trailing = {
+        Toggle(value == true) { on ->
+            val ok = SystemAccess.writeGlobal(activity, key, on)
+            activity.toast(if (ok) "$title ${if (on) "on" else "off"}" else "The system rejected the change")
+            DisplayRepository.log("Setting $key → ${if (on) 1 else 0}: ${if (ok) "accepted" else "rejected"}")
+            CapabilityProbe.refreshStatic(activity)
+            activity.resumeTick.intValue = tick + 1
+        }
+    })
+}
+
+// ───────────────────────── building blocks ─────────────────────────
+
+@Composable
+private fun TwoColumns(left: @Composable ColumnScope.() -> Unit, right: @Composable ColumnScope.() -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth > 900.dp) {
+            Row(horizontalArrangement = Arrangement.spacedBy(40.dp)) {
+                Column(Modifier.weight(1f), content = left)
+                Column(Modifier.weight(1f), content = right)
+            }
+        } else {
+            Column { left(); Spacer(Modifier.height(28.dp)); right() }
+        }
     }
 }
 
-@Composable private fun Primary(text: String, enabled: Boolean = true, onClick: () -> Unit) =
-    Button(onClick, enabled = enabled, shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = BP.Accent)) { Text(text) }
+@Composable
+private fun Label(text: String) {
+    Text(text, color = BP.TextDim, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+}
 
-@Composable private fun Secondary(text: String, onClick: () -> Unit) =
-    OutlinedButton(onClick, shape = RoundedCornerShape(10.dp)) { Text(text, color = BP.Accent) }
+@Composable
+private fun Group(content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(BP.Surface), content = content)
+}
+
+@Composable
+private fun Item(
+    title: String,
+    sub: String?,
+    dot: Color? = null,
+    value: String? = null,
+    mono: Boolean = false,
+    last: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Column {
+        Row(
+            Modifier.fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (dot != null) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+                Spacer(Modifier.width(12.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title, color = if (onClick == null && trailing == null && sub == null && mono) BP.TextDim else BP.Text,
+                    fontSize = if (mono) 13.sp else 15.sp, fontFamily = if (mono) FontFamily.Monospace else FontFamily.Default,
+                )
+                if (sub != null) {
+                    Text(sub, color = BP.TextDim, fontSize = 13.sp, lineHeight = 18.sp,
+                        fontFamily = if (mono && trailing != null) FontFamily.Monospace else FontFamily.Default,
+                        modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+            if (value != null) {
+                Spacer(Modifier.width(16.dp))
+                Text(value, color = BP.TextDim, fontSize = 14.sp, modifier = Modifier.widthIn(max = 360.dp))
+            }
+            if (trailing != null) { Spacer(Modifier.width(12.dp)); trailing() }
+        }
+        if (!last) Box(Modifier.fillMaxWidth().padding(start = 18.dp).height(1.dp).background(BP.Outline))
+    }
+}
+
+@Composable
+private fun PermItem(title: String, sub: String, granted: Boolean, last: Boolean = false, onGrant: () -> Unit) {
+    Item(title, sub, last = last, onClick = if (granted) null else onGrant, trailing = {
+        if (granted) Text("Allowed", color = BP.TextDim, fontSize = 14.sp) else Text("Allow", color = BP.Accent, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    })
+}
+
+@Composable
+private fun Toggle(checked: Boolean, onChange: (Boolean) -> Unit) =
+    Switch(
+        checked, onChange,
+        colors = SwitchDefaults.colors(
+            checkedTrackColor = BP.Accent, checkedThumbColor = Color.White,
+            uncheckedTrackColor = BP.SurfaceHigh, uncheckedThumbColor = BP.TextDim, uncheckedBorderColor = BP.Outline,
+        ),
+    )
+
+@Composable
+private fun PrimaryButton(text: String, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(10.dp)).background(BP.Accent).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
+    ) { Text(text, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
+}
+
+@Composable
+private fun GhostButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(10.dp)).background(BP.SurfaceHigh)
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
+    ) { Text(text, color = if (enabled) BP.Text else BP.TextFaint, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
+}
+
+@Composable
+private fun Empty(title: String, body: String) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 80.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(title, color = BP.Text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        Text(body, color = BP.TextDim, fontSize = 15.sp)
+    }
+}

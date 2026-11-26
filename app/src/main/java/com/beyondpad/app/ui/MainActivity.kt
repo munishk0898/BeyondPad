@@ -12,6 +12,7 @@ import com.beyondpad.app.Prefs
 import com.beyondpad.app.desktop.DesktopLauncher
 import com.beyondpad.app.desktop.StatusPresentation
 import com.beyondpad.app.display.CapabilityProbe
+import com.beyondpad.app.display.ConnectionSignals
 import com.beyondpad.app.display.DisplayRepository
 import com.beyondpad.app.display.ModeController
 import com.beyondpad.app.service.DisplayMonitorService
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        ConnectionSignals.refresh()
         DisplayRepository.refresh()
         CapabilityProbe.refreshStatic(this)
         resumeTick.intValue++

@@ -217,7 +217,7 @@ private fun DesktopScreen(displayId: Int) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.linearGradient(listOf(Color(0xFF0A1020), Color(0xFF0B1A33), Color(0xFF071022))))
+            .background(Brush.verticalGradient(listOf(Color(0xFF15171B), Color(0xFF0E0F11))))
             .focusRequester(focus)
             .focusable()
             .onPreviewKeyEvent { e ->

@@ -10,18 +10,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 object BP {
-    val Background = Color(0xFF0B0F17)
-    val Surface = Color(0xFF121826)
-    val SurfaceHigh = Color(0xFF1A2233)
-    val Outline = Color(0xFF263048)
-    val Accent = Color(0xFF3D8BFF)
-    val AccentSoft = Color(0xFF1E3A66)
-    val Text = Color(0xFFE8EEF9)
-    val TextDim = Color(0xFF8D99B3)
-    val Good = Color(0xFF3DD68C)
-    val Warn = Color(0xFFFFB547)
-    val Bad = Color(0xFFFF5D6C)
-    val Taskbar = Color(0xE6101622)
+    val Background = Color(0xFF0E0F11)
+    val Surface = Color(0xFF16181C)
+    val SurfaceHigh = Color(0xFF1F2227)
+    val Outline = Color(0xFF2A2E35)
+    val Accent = Color(0xFF4C8DFF)
+    val AccentSoft = Color(0xFF1C2B45)
+    val Text = Color(0xFFECEDEF)
+    val TextDim = Color(0xFF8A9099)
+    val TextFaint = Color(0xFF5A6069)
+    val Good = Color(0xFF46C37B)
+    val Warn = Color(0xFFE8A33D)
+    val Bad = Color(0xFFE5534B)
+    val Taskbar = Color(0xF0141619)
 }
 
 private val scheme = darkColorScheme(

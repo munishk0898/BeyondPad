@@ -19,6 +19,7 @@ opens real apps on the monitor while the tablet keeps working on its own.
 | Free-form, resizable windows on the monitor | **OxygenOS / Android** (desktop windowing) | BeyondPad asks for windows (`setLaunchBounds`), but only the OS can grant them. |
 | Moving the mouse pointer between screens, keyboard focus | **OxygenOS / Android** input system | BeyondPad's desktop supports mouse (right-click menus) and keyboard (Meta or Ctrl+Space for Start, Enter, Esc). |
 | Detecting connect / disconnect, reading monitor details | **BeyondPad** | `DisplayManager` + `DisplayListener`, foreground monitor service. |
+| Telling "hub without video" from "monitor hidden by OxygenOS" | **BeyondPad** | HDMI/DP audio sink (`AudioManager`), USB devices on the port (`UsbManager`), and a scan for disabled or unlisted displays. |
 | Capability test (is the monitor usable, are windows free-form?) | **BeyondPad** | Opens a test window on the monitor and measures where it landed and its size. |
 | Desktop shell on the monitor: Start menu, search, taskbar, pinned apps, running indicators | **BeyondPad** | `DesktopActivity`, shown on the external display. |
 | Opening apps on the monitor or tablet, new windows | **BeyondPad** (request) + **OS** (decision) | `ActivityOptions.setLaunchDisplayId()` through `LauncherApps`. |
@@ -43,26 +44,26 @@ change the system's global output mode, or override OEM restrictions. These need
 
 ## 2. Install
 
-1. Download `BeyondPad-1.0.0-release.apk` to the tablet.
+1. Download `BeyondPad-1.1.0-release.apk` to the tablet.
 2. Open it and allow "Install unknown apps" for your browser or file manager when asked.
 3. Open BeyondPad and allow notifications.
 4. Optional:
    - **Display over other apps**: lets BeyondPad open the desktop on the monitor by itself when you plug it in. Without it, tap the notification instead.
    - **Usage access**: shows which taskbar apps are active right now.
 
-The debug APK (`BeyondPad-1.0.0-debug.apk`, package `com.beyondpad.app.debug`) can be installed next to the release build.
+The debug APK (`BeyondPad-1.1.0-debug.apk`, package `com.beyondpad.app.debug`) can be installed next to the release build.
 
 Install from a computer instead:
 
 ```
-adb install -r BeyondPad-1.0.0-release.apk
+adb install -r BeyondPad-1.1.0-release.apk
 ```
 
 ## 3. First run on the Pad 3
 
 1. Connect the USB-C to HDMI adapter and the monitor.
-2. Read the **HDMI / USB-C connection** card. If it says nothing is connected while the monitor shows a copy of the tablet, OxygenOS is mirroring at system level. Go to section 4.
-3. Under **Extended desktop availability**, tap **Run capability test**.
+2. Look at **Overview**. The drawing and the headline show one of four states: second screen ready, monitor hidden by OxygenOS, hub with no video signal, or nothing connected. The **Next** list says what to do for that state.
+3. Under **Advanced**, tap **Run capability test**.
 4. Tap **Open desktop on monitor**. Use the Start button (or Meta / Ctrl+Space) and click an app.
 5. Right-click or long-press any app for: open in a window, open full screen, open a new window, open on the tablet, pin.
 
