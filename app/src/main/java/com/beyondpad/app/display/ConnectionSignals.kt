@@ -66,6 +66,9 @@ object ConnectionSignals {
         override fun onReceive(c: Context?, i: Intent?) {
             // Let the system settle (displays and audio routes appear a moment after the cable).
             handler.postDelayed({ refresh(); DisplayRepository.refresh() }, 600)
+            if (i?.action == UsbManager.ACTION_USB_DEVICE_ATTACHED || i?.action == AudioManager.ACTION_HDMI_AUDIO_PLUG) {
+                scheduleEnable("cable plugged in")
+            }
         }
     }
 
@@ -99,8 +102,39 @@ object ConnectionSignals {
         if (now.hdmiAudio != before.hdmiAudio) {
             DisplayRepository.log(if (now.hdmiAudio) "Monitor signal: HDMI/DP audio sink appeared (${now.hdmiAudioName ?: "unnamed"})" else "Monitor signal: HDMI/DP audio sink gone")
         }
+        if (now.hdmiAudio && !before.hdmiAudio) scheduleEnable("monitor signal appeared")
+        if (now.hidden.isNotEmpty() && before.hidden.isEmpty()) scheduleEnable("switched-off display found")
+        if (now.usb.size > before.usb.size) scheduleEnable("USB device attached")
         if (now.usb.size != before.usb.size) {
             DisplayRepository.log("USB devices on the port: ${if (now.usb.isEmpty()) "none" else now.usb.joinToString { it.name }}")
+        }
+    }
+
+    /**
+     * Android 16 on the Pad 3 keeps a new monitor disabled. If the user paired BeyondPad with
+     * Wireless debugging, switch it on: now, and again a few times while the link settles.
+     */
+    fun scheduleEnable(reason: String) {
+        if (!started) return
+        val s = com.beyondpad.app.Prefs.settings.value
+        if (!s.adbPaired || !s.autoEnableMonitor) return
+        handler.removeCallbacks(enableTick)
+        enableReason = reason
+        enableTries = 0
+        handler.postDelayed(enableTick, 1500)
+    }
+
+    private var enableReason = ""
+    private var enableTries = 0
+    private val enableTick = object : Runnable {
+        override fun run() {
+            if (DisplayRepository.externalDisplays.value.isNotEmpty()) return
+            enableTries++
+            com.beyondpad.app.adb.SelfAdb.enableMonitors(enableReason) { result ->
+                if (!result.startsWith("Monitor turned on") && enableTries < 4 &&
+                    DisplayRepository.externalDisplays.value.isEmpty()
+                ) handler.postDelayed(this, 4000L * enableTries)
+            }
         }
     }
 

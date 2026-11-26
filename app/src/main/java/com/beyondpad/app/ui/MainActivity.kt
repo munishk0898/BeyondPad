@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
         DisplayRepository.refresh()
         CapabilityProbe.refreshStatic(this)
         resumeTick.intValue++
+        ConnectionSignals.scheduleEnable("app opened")
     }
 
     private fun handle(intent: Intent?) {

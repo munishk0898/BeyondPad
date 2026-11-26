@@ -71,6 +71,7 @@ class DisplayMonitorService : Service() {
         ServiceCompat.startForeground(this, ID_ONGOING, ongoing(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         DisplayRepository.addConnectListener(onConnect)
         DisplayRepository.addDisconnectListener(onDisconnect)
+        com.beyondpad.app.display.ConnectionSignals.scheduleEnable("monitor service started")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

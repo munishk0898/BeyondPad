@@ -10,6 +10,7 @@ class BeyondPadApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Prefs.init(this)
+        com.beyondpad.app.adb.SelfAdb.init(this)
         DisplayRepository.init(this)
         ConnectionSignals.init(this)
         CapabilityProbe.refreshStatic(this)

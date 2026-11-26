@@ -2,6 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Talking to this tablet's own Wireless debugging service (local network + mDNS) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
     <!-- Foreground monitor that watches for HDMI / USB-C display connections -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -81,6 +87,10 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Watches for external HDMI/USB-C monitor connections so the user's desktop can open on the monitor when it is plugged in." />
         </service>
+
+        <receiver
+            android:name=".adb.PairingReceiver"
+            android:exported="false" />
 
         <receiver
             android:name=".service.BootReceiver"
