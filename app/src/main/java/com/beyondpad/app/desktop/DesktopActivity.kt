@@ -49,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -183,7 +182,7 @@ private fun DesktopScreen(displayId: Int) {
         while (true) { value = f.format(Date()); delay(5000) }
     }
 
-    val sessionApps = remember { mutableStateListOf<String>() }
+    val sessionApps = DesktopSession.opened
     var drawerOpen by remember { mutableStateOf(false) }
     var panelOpen by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }

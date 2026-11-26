@@ -55,28 +55,44 @@ object ModeController {
         val target = targetMode(info) ?: return
         val current = info.currentMode
         if (current != null && keyOf(current) == keyOf(target)) {
-            setPreferred(window, target.modeId)
+            setPreferred(window, target)
             _status.value = ModeStatus(ModeResult.VERIFIED, target, current, "Display is already running ${current.label}.")
             return
         }
-        setPreferred(window, target.modeId)
+        setPreferred(window, target)
         _status.value = ModeStatus(ModeResult.PENDING, target, current, "Requested ${target.label}. Waiting for the system…")
         DisplayRepository.log("Requested mode ${target.label} on display $displayId")
         handler.removeCallbacksAndMessages(null)
         handler.postDelayed({ verify(displayId, target) }, 2500)
     }
 
-    private fun setPreferred(window: Window, modeId: Int) {
+    /** Ask for the mode by ID and, for systems that only look at refresh rate, by rate too. */
+    private fun setPreferred(window: Window, mode: ModeInfo) {
         val lp = window.attributes
-        if (lp.preferredDisplayModeId != modeId) {
-            lp.preferredDisplayModeId = modeId
+        if (lp.preferredDisplayModeId != mode.modeId || lp.preferredRefreshRate != mode.refreshRate) {
+            lp.preferredDisplayModeId = mode.modeId
+            lp.preferredRefreshRate = mode.refreshRate
             window.attributes = lp
         }
     }
 
+    private var retried = false
+
     private fun verify(displayId: Int, target: ModeInfo) {
         DisplayRepository.refresh()
         val actual = DisplayRepository.externalDisplays.value.firstOrNull { it.displayId == displayId }?.currentMode
+        if ((actual == null || keyOf(actual) != keyOf(target)) && !retried) {
+            // Some systems apply the request only after the window is re-laid out: ask once more.
+            retried = true
+            desktopWindow?.second?.let { w ->
+                val lp = w.attributes
+                lp.preferredDisplayModeId = 0; w.attributes = lp
+                setPreferred(w, target)
+            }
+            handler.postDelayed({ verify(displayId, target) }, 2500)
+            return
+        }
+        retried = false
         _status.value = if (actual != null && keyOf(actual) == keyOf(target)) {
             DisplayRepository.log("Verified: display $displayId now runs ${actual.label}")
             ModeStatus(ModeResult.VERIFIED, target, actual, "Verified: monitor is running ${actual.label}.")

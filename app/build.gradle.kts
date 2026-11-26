@@ -16,8 +16,8 @@ android {
         applicationId = "com.beyondpad.app"
         minSdk = 30
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.4.0"
+        versionCode = 6
+        versionName = "1.5.0"
         // The Pad 3 is arm64 only: skip native code for other CPUs, and English resources only.
         ndk { abiFilters += "arm64-v8a" }
         resourceConfigurations += "en"

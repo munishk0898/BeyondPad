@@ -87,7 +87,7 @@ fun Dashboard(activity: MainActivity) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 24.dp)) {
                 when (tab) {
                     0 -> Overview(activity, link, ext, signals) { tab = it }
-                    1 -> DisplayTab(ext)
+                    1 -> DisplayTab(activity, ext)
                     2 -> DesktopTab(activity, ext, tick)
                     else -> AdvancedTab(activity, ext, tick)
                 }
@@ -250,7 +250,7 @@ private fun Steps(steps: List<String>) {
 // ───────────────────────── display ─────────────────────────
 
 @Composable
-private fun DisplayTab(ext: ExternalDisplayInfo?) {
+private fun DisplayTab(activity: MainActivity, ext: ExternalDisplayInfo?) {
     val settings by Prefs.settings.collectAsStateWithLifecycle()
     val modeStatus by ModeController.status.collectAsStateWithLifecycle()
     if (ext == null) { Empty("No second screen yet", "Resolution and refresh rate appear here once the monitor is available to apps."); return }
@@ -276,7 +276,10 @@ private fun DisplayTab(ext: ExternalDisplayInfo?) {
             Group {
                 Item(
                     "Automatic", "Native resolution, highest refresh rate (${NativeModePicker.best(ext.supportedModes)?.label ?: "n/a"})",
-                    trailing = { Toggle(settings.autoResolution) { on -> Prefs.update { it.copy(autoResolution = on) }; ModeController.applyToDesktop() } },
+                    trailing = { Toggle(settings.autoResolution) { on ->
+                        Prefs.update { it.copy(autoResolution = on) }
+                        if (DesktopLauncher.runningOnDisplay < 0) activity.openDesktop() else ModeController.applyToDesktop()
+                    } },
                     last = true,
                 )
             }
@@ -294,7 +297,8 @@ private fun DisplayTab(ext: ExternalDisplayInfo?) {
                     Item(
                         m.label, tags.ifEmpty { null },
                         onClick = if (settings.autoResolution) null else ({
-                            Prefs.update { it.copy(manualModeKey = key) }; ModeController.applyToDesktop()
+                            Prefs.update { it.copy(manualModeKey = key) }
+                            if (DesktopLauncher.runningOnDisplay < 0) activity.openDesktop() else ModeController.applyToDesktop()
                         }),
                         trailing = { if (chosen) Icon(Icons.Filled.Check, null, tint = BP.Accent, modifier = Modifier.size(20.dp)) },
                         last = i == ext.supportedModes.lastIndex,
@@ -302,7 +306,7 @@ private fun DisplayTab(ext: ExternalDisplayInfo?) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text("A mode is applied through BeyondPad's window on the monitor and marked as applied only after the monitor reports it.", color = BP.TextFaint, fontSize = 12.sp)
+            Text("A mode is applied through BeyondPad's desktop on the monitor, so picking one opens the desktop. It is marked as applied only after the monitor reports it.", color = BP.TextFaint, fontSize = 12.sp)
         },
         right = {
             Label("Monitor")
@@ -343,6 +347,7 @@ private fun DesktopTab(activity: MainActivity, ext: ExternalDisplayInfo?, tick: 
 
     TwoColumns(
         left = {
+            if (ext != null) { MonitorRemote(activity, ext); Spacer(Modifier.height(28.dp)) }
             Label("Desktop on the monitor")
             Group {
                 Item("Status", null, value = if (running) "Open on display ${DesktopLauncher.runningOnDisplay}" else if (ext == null) "No second screen" else "Closed",
@@ -443,17 +448,17 @@ private fun TwoColumns(left: @Composable ColumnScope.() -> Unit, right: @Composa
 }
 
 @Composable
-private fun Label(text: String) {
+internal fun Label(text: String) {
     Text(text, color = BP.TextDim, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
 }
 
 @Composable
-private fun Group(content: @Composable ColumnScope.() -> Unit) {
+internal fun Group(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(BP.Surface), content = content)
 }
 
 @Composable
-private fun Item(
+internal fun Item(
     title: String,
     sub: String?,
     dot: Color? = null,
