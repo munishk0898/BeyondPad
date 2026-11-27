@@ -166,15 +166,20 @@ class TouchpadService : AccessibilityService() {
 
         fun flash() { flashUntil = System.currentTimeMillis() + 180; invalidate(); postDelayed({ invalidate() }, 200) }
 
+        private val arrow = Path()
+
+        override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+            val s = w / 36f
+            arrow.reset()
+            arrow.moveTo(2 * s, 2 * s); arrow.lineTo(2 * s, 26 * s); arrow.lineTo(8.5f * s, 20 * s)
+            arrow.lineTo(13 * s, 30 * s); arrow.lineTo(17 * s, 28.5f * s); arrow.lineTo(12.5f * s, 18.5f * s)
+            arrow.lineTo(21 * s, 18.5f * s); arrow.close()
+        }
+
         override fun onDraw(c: Canvas) {
             val s = width / 36f
             if (System.currentTimeMillis() < flashUntil) c.drawCircle(4 * s, 4 * s, 12 * s, ring)
-            val p = Path().apply {
-                moveTo(2 * s, 2 * s); lineTo(2 * s, 26 * s); lineTo(8.5f * s, 20 * s)
-                lineTo(13 * s, 30 * s); lineTo(17 * s, 28.5f * s); lineTo(12.5f * s, 18.5f * s)
-                lineTo(21 * s, 18.5f * s); close()
-            }
-            c.drawPath(p, fill); c.drawPath(p, edge)
+            c.drawPath(arrow, fill); c.drawPath(arrow, edge)
         }
     }
 }
