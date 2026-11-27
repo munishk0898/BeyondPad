@@ -10,7 +10,15 @@ import android.view.Display
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -256,22 +264,32 @@ private fun DesktopScreen(displayId: Int) {
         }
 
         // Start menu
-        if (drawerOpen) {
+        AnimatedVisibility(
+            drawerOpen,
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 68.dp),
+            enter = fadeIn(tween(160)) + scaleIn(tween(200), initialScale = 0.92f, transformOrigin = TransformOrigin(0f, 1f)) + slideInVertically(tween(200)) { it / 12 },
+            exit = fadeOut(tween(120)) + scaleOut(tween(140), targetScale = 0.95f, transformOrigin = TransformOrigin(0f, 1f)),
+        ) {
             StartMenu(
                 apps = apps,
                 pinned = settings.pinned.toSet(),
                 onOpen = { open(it) },
                 onClose = { drawerOpen = false },
                 menu = { app, dismiss -> AppMenuItems(app, app.key in settings.pinned, dismiss, ::open, ::togglePin, displayId) },
-                modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 68.dp),
+                modifier = Modifier,
             )
         }
 
         // Quick display panel
-        if (panelOpen) {
+        AnimatedVisibility(
+            panelOpen,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 68.dp),
+            enter = fadeIn(tween(160)) + scaleIn(tween(200), initialScale = 0.92f, transformOrigin = TransformOrigin(1f, 1f)),
+            exit = fadeOut(tween(120)) + scaleOut(tween(140), targetScale = 0.95f, transformOrigin = TransformOrigin(1f, 1f)),
+        ) {
             Surface(
                 color = BP.Surface, shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 68.dp).width(340.dp)
+                modifier = Modifier.width(340.dp)
                     .border(1.dp, BP.Outline, RoundedCornerShape(14.dp)),
             ) {
                 Column(Modifier.padding(16.dp)) {
@@ -434,7 +452,7 @@ private fun AppMenuItems(
     DropdownMenuItem(text = { Text("Open in a window") }, onClick = { dismiss(); open(app, displayId, false, WindowStyle.WINDOW) })
     DropdownMenuItem(text = { Text("Open full screen") }, onClick = { dismiss(); open(app, displayId, false, WindowStyle.FULLSCREEN) })
     DropdownMenuItem(text = { Text("Open a new window") }, onClick = { dismiss(); open(app, displayId, true, null) })
-    DropdownMenuItem(text = { Text("Open on the tablet") }, onClick = { dismiss(); open(app, Display.DEFAULT_DISPLAY, false, WindowStyle.FULLSCREEN) })
+    DropdownMenuItem(text = { Text("Open on the tablet") }, onClick = { dismiss(); open(app, Display.DEFAULT_DISPLAY, true, WindowStyle.FULLSCREEN) })
     DropdownMenuItem(text = { Text(if (pinned) "Unpin" else "Pin to desktop and taskbar") }, onClick = { dismiss(); togglePin(app) })
 }
 

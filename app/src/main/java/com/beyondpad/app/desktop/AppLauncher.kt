@@ -56,6 +56,14 @@ object AppLauncher {
         }
     }
 
+    /**
+     * Opens the app on the tablet as a fresh window instead of asking Android to drag its running
+     * window over from the monitor. Moving a running window between screens of different size and
+     * density makes OxygenOS and many apps restart or crash.
+     */
+    fun openOnTablet(ctx: Context, app: AppEntry): Result =
+        launch(ctx, app, Display.DEFAULT_DISPLAY, WindowStyle.FULLSCREEN, newInstance = true)
+
     /** A centred window at roughly 60 % of the display, cascaded so several windows don't stack exactly. */
     private fun defaultWindowBounds(displayId: Int, index: Int): Rect? {
         val d = DisplayRepository.display(displayId) ?: return null

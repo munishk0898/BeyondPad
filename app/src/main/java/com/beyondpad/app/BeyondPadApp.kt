@@ -9,6 +9,7 @@ import com.beyondpad.app.service.DisplayMonitorService
 class BeyondPadApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        CrashLog.install(this)
         Prefs.init(this)
         DisplayRepository.init(this)
         ConnectionSignals.init(this)

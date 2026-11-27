@@ -26,7 +26,7 @@ tablet really sees, and when Android makes the monitor available to apps it open
 
 ## 2. Install
 
-1. Copy `BeyondPad-1.5.0-release.apk` to the tablet and open it. Allow "Install unknown apps" when asked.
+1. Copy `BeyondPad-1.6.0-release.apk` to the tablet and open it. Allow "Install unknown apps" when asked.
 2. Open BeyondPad and allow notifications.
 3. Optional, on the Desktop tab:
    - **Display over other apps** lets the desktop open by itself when the monitor becomes available.
