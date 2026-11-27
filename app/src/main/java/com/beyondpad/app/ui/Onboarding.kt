@@ -59,7 +59,8 @@ private val pages = listOf(
         "Everything works offline. Nothing leaves the tablet.",
         listOf(
             "A USB-C to HDMI adapter or hub that supports DisplayPort Alt Mode.",
-            "A mouse or keyboard, or use the tablet itself as a touchpad.",
+            if (com.beyondpad.app.BuildConfig.TOUCHPAD) "A mouse or keyboard, or use the tablet itself as a touchpad."
+            else "A Bluetooth or USB mouse and keyboard to work inside apps on the monitor.",
         ),
     ),
     Page(
@@ -148,12 +149,14 @@ private fun PermissionsPage(activity: MainActivity) {
         PermRow("Notifications", "Tells you when a monitor connects, with one-tap buttons", notif) {
             if (Build.VERSION.SDK_INT >= 33) notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        PermRow("Display over other apps", "Lets the desktop open on the monitor by itself", overlay) {
+        PermRow("Display over other apps", "Lets the desktop open on the monitor by itself", overlay, last = !com.beyondpad.app.BuildConfig.TOUCHPAD) {
             activity.startActivity(SystemAccess.overlaySettingsIntent(activity))
         }
-        PermRow("Touchpad (Accessibility)", "Only if you have no mouse. Set it up any time from the Touchpad button.", touchpad, last = true) {
-            Prefs.update { it.copy(onboarded = true) }
-            activity.screen.value = "touchpad"
+        if (com.beyondpad.app.BuildConfig.TOUCHPAD) {
+            PermRow("Touchpad (Accessibility)", "Only if you have no mouse. Set it up any time from the Touchpad button.", touchpad, last = true) {
+                Prefs.update { it.copy(onboarded = true) }
+                activity.screen.value = "touchpad"
+            }
         }
     }
 }

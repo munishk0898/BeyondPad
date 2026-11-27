@@ -16,8 +16,8 @@ android {
         applicationId = "com.beyondpad.app"
         minSdk = 30
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.7.0"
+        versionCode = 9
+        versionName = "1.7.1"
         // The Pad 3 is arm64 only: skip native code for other CPUs, and English resources only.
         ndk { abiFilters += "arm64-v8a" }
         resourceConfigurations += "en"
@@ -53,6 +53,23 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    // "standard" installs anywhere. "touchpad" adds the Accessibility-based touchpad, which Google
+    // Play Protect blocks for sideloaded apps in some regions. Same app ID and key, so either
+    // edition updates the other.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("standard") {
+            dimension = "edition"
+            buildConfigField("boolean", "TOUCHPAD", "false")
+        }
+        create("touchpad") {
+            dimension = "edition"
+            versionNameSuffix = "-touchpad"
+            buildConfigField("boolean", "TOUCHPAD", "true")
+        }
     }
     lint {
         abortOnError = false

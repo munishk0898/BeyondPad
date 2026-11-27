@@ -197,11 +197,13 @@ fun SettingsScreen(activity: MainActivity, onBack: () -> Unit, onHelp: () -> Uni
                     Perm("Display over other apps", "Lets the desktop open by itself", overlay) {
                         activity.startActivity(SystemAccess.overlaySettingsIntent(activity))
                     }
-                    Perm("Usage access", "Shows which apps are active", usage) {
+                    Perm("Usage access", "Shows which apps are active", usage, last = !com.beyondpad.app.BuildConfig.TOUCHPAD) {
                         activity.startActivity(SystemAccess.usageSettingsIntent())
                     }
-                    Perm("Touchpad (Accessibility)", "Point, click and type on the monitor without a mouse", touchpadOn, last = true) {
-                        activity.screen.value = "touchpad"
+                    if (com.beyondpad.app.BuildConfig.TOUCHPAD) {
+                        Perm("Touchpad (Accessibility)", "Point, click and type on the monitor without a mouse", touchpadOn, last = true) {
+                            activity.screen.value = "touchpad"
+                        }
                     }
                 }
 
@@ -277,7 +279,7 @@ fun SettingsScreen(activity: MainActivity, onBack: () -> Unit, onHelp: () -> Uni
 
                 Spacer(Modifier.height(28.dp))
                 Text(
-                    "BeyondPad $version · works offline, no developer options\n${caps.device} · ${caps.build}",
+                    "BeyondPad $version${if (com.beyondpad.app.BuildConfig.TOUCHPAD) "" else " (standard edition)"} · works offline, no developer options\n${caps.device} · ${caps.build}",
                     color = BP.TextFaint, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(start = 4.dp, bottom = 24.dp),
                 )
             }

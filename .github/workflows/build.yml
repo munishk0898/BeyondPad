@@ -33,16 +33,15 @@ jobs:
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease lintDebug 2>&1 | tee build.log
+          ./gradlew --no-daemon --stacktrace assembleStandardRelease assembleTouchpadRelease lintStandardDebug 2>&1 | tee build.log
 
       - name: Collect outputs
         if: always()
         run: |
           mkdir -p out
           cp build.log out/ 2>/dev/null || true
-          cp app/build/outputs/apk/debug/*.apk out/ 2>/dev/null || true
-          cp app/build/outputs/apk/release/*.apk out/ 2>/dev/null || true
-          cp app/build/reports/lint-results-debug.txt out/ 2>/dev/null || true
+          find app/build/outputs/apk -name "*.apk" -exec cp {} out/ \; 2>/dev/null || true
+          cp app/build/reports/lint-results-standardDebug.txt out/lint-results-debug.txt 2>/dev/null || true
           BT=$ANDROID_HOME/build-tools/36.0.0
           cp $BT/lib/apksigner.jar out/ 2>/dev/null || true
           for f in out/*.apk; do

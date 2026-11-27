@@ -83,6 +83,12 @@ fun TouchpadScreen(activity: MainActivity, onBack: () -> Unit) {
             Text("Touchpad", color = BP.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
         }
         when {
+            !com.beyondpad.app.BuildConfig.TOUCHPAD -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    "The touchpad is in the touchpad edition of BeyondPad. Google Play Protect blocks sideloaded apps that use Accessibility in India, so this standard edition leaves it out. Use a Bluetooth or USB mouse instead.",
+                    color = BP.TextDim, fontSize = 16.sp, lineHeight = 23.sp, modifier = Modifier.widthIn(max = 560.dp),
+                )
+            }
             !connected -> TouchpadSetup(activity)
             ext == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Connect a monitor to use the touchpad.", color = BP.TextDim, fontSize = 16.sp)

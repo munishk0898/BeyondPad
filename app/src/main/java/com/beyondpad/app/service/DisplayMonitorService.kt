@@ -128,7 +128,7 @@ class DisplayMonitorService : Service() {
             .apply {
                 if (ext != null) {
                     addAction(0, "Show desktop", hop(false))
-                    addAction(0, "Touchpad", hop(true))
+                    if (com.beyondpad.app.BuildConfig.TOUCHPAD) addAction(0, "Touchpad", hop(true))
                 }
             }
             .build()
@@ -147,7 +147,7 @@ class DisplayMonitorService : Service() {
             .setContentIntent(mainIntent(false))
         if (withDesktopAction) {
             b.addAction(0, "Show desktop", hop(false))
-            b.addAction(0, "Touchpad", hop(true))
+            if (com.beyondpad.app.BuildConfig.TOUCHPAD) b.addAction(0, "Touchpad", hop(true))
         }
         try {
             getSystemService(NotificationManager::class.java).notify(ID_EVENT, b.build())

@@ -79,19 +79,6 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <service
-            android:name=".touch.TouchpadService"
-            android:exported="false"
-            android:label="@string/touchpad_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/touchpad_service" />
-        </service>
-
-        <service
             android:name=".service.DesktopTileService"
             android:exported="true"
             android:icon="@drawable/ic_launcher_foreground"

@@ -43,7 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beyondpad.app.ui.theme.BP
 
-private val faq = listOf(
+private val faq get() = allFaq.filter { com.beyondpad.app.BuildConfig.TOUCHPAD || !it.first.contains("Touchpad") && !it.first.contains("no mouse") } +
+    if (com.beyondpad.app.BuildConfig.TOUCHPAD) emptyList() else listOf(
+        "Where is the touchpad?" to
+            "It needs Android's Accessibility feature, and Google Play Protect blocks sideloaded apps that use it in India. This standard edition leaves it out so it installs normally. A Bluetooth or USB mouse and keyboard work on the monitor desktop.",
+    )
+
+private val allFaq = listOf(
     "The monitor stays dark or shows \"no signal\"" to
         "First check the adapter: it must support DisplayPort Alt Mode (many hubs only output video from laptops). If the adapter is fine, OxygenOS 16 may be keeping the monitor switched off until it is confirmed. Unplug and replug, unlock the tablet and look for a prompt. BeyondPad takes over as soon as Android turns the monitor on.",
     "The monitor shows a copy of the tablet with black bars" to
@@ -103,7 +109,7 @@ fun WhatsNewSheet(version: String, onDismiss: () -> Unit) {
             Text("What's new in $version", color = BP.Text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.size(14.dp))
             listOf(
-                "Touchpad: use the tablet to point, click, scroll and type on the monitor.",
+                if (com.beyondpad.app.BuildConfig.TOUCHPAD) "Touchpad: use the tablet to point, click, scroll and type on the monitor." else "Installs normally again: the touchpad, which Play Protect blocks, now lives in a separate edition.",
                 "Quick Settings tile and notification buttons to show the desktop in one tap.",
                 "Desktop wallpaper from your gallery, a clock, an app switcher and a size slider.",
                 "Reopen the apps you had on the monitor last time.",

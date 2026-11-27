@@ -126,8 +126,10 @@ fun HomeScreen(activity: MainActivity, onSettings: () -> Unit, onTouchpad: () ->
         Row(Modifier.fillMaxWidth().padding(start = 32.dp, end = 24.dp, top = 18.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("BeyondPad", color = BP.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
             Spacer(Modifier.weight(1f))
-            GhostButton("Touchpad", BpIcons.Touchpad, onClick = onTouchpad)
-            Spacer(Modifier.width(10.dp))
+            if (com.beyondpad.app.BuildConfig.TOUCHPAD) {
+                GhostButton("Touchpad", BpIcons.Touchpad, onClick = onTouchpad)
+                Spacer(Modifier.width(10.dp))
+            }
             RoundIcon(Icons.Filled.Settings, "Settings", onSettings)
         }
         CrashBanner(activity)
