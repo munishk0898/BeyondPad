@@ -16,11 +16,22 @@ import com.beyondpad.app.display.ConnectionSignals
 import com.beyondpad.app.display.DisplayRepository
 import com.beyondpad.app.display.ModeController
 import com.beyondpad.app.service.DisplayMonitorService
+import com.beyondpad.app.ui.theme.BP
 import com.beyondpad.app.ui.theme.BeyondPadTheme
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    companion object { const val EXTRA_OPEN_DESKTOP = "open_desktop" }
+    companion object {
+        const val EXTRA_OPEN_DESKTOP = "open_desktop"
+        const val EXTRA_TOUCHPAD = "open_touchpad"
+    }
+
+    /** Which screen is showing: "home", "settings", "touchpad" or "help". */
+    val screen = mutableStateOf("home")
 
     private var presentation: StatusPresentation? = null
     /** Bumped to make the dashboard re-read permission state after returning from Settings. */
@@ -35,6 +46,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         DisplayRepository.addDisconnectListener(onDisconnect)
         if (Prefs.settings.value.monitorService) DisplayMonitorService.start(this)
+        BP.apply(this, Prefs.settings.value)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { Prefs.settings.collect { BP.apply(this@MainActivity, it) } }
+        }
         setContent { BeyondPadTheme { Dashboard(this) } }
         handle(intent)
     }
@@ -52,7 +67,16 @@ class MainActivity : ComponentActivity() {
         resumeTick.intValue++
     }
 
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        BP.apply(this, Prefs.settings.value)
+    }
+
     private fun handle(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_TOUCHPAD, false) == true) {
+            intent.removeExtra(EXTRA_TOUCHPAD)
+            screen.value = "touchpad"
+        }
         if (intent?.getBooleanExtra(EXTRA_OPEN_DESKTOP, false) == true) {
             intent.removeExtra(EXTRA_OPEN_DESKTOP)
             openDesktop()
@@ -61,14 +85,14 @@ class MainActivity : ComponentActivity() {
 
     fun openDesktop() {
         val d = DisplayRepository.primaryExternal()
-        if (d == null) { toast("No external display is visible to apps."); return }
+        if (d == null) { toast("The monitor isn't available yet. Check the cable and that the monitor is on."); return }
         val r = DesktopLauncher.open(this, d.displayId)
         toast(r.message)
     }
 
     fun togglePresentation() {
         presentation?.let { it.dismiss(); presentation = null; presentationOn.value = false; return }
-        val info = DisplayRepository.primaryExternal() ?: run { toast("No external display is visible to apps."); return }
+        val info = DisplayRepository.primaryExternal() ?: run { toast("The monitor isn't available yet."); return }
         val display = DisplayRepository.display(info.displayId) ?: return
         try {
             presentation = StatusPresentation(this, display, ModeController.targetMode(info)?.modeId).also { it.show() }

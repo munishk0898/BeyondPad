@@ -114,7 +114,8 @@ private fun advice(link: LinkState, ext: ExternalDisplayInfo?, s: Signals): Advi
 }
 
 @Composable
-fun HomeScreen(activity: MainActivity, onSettings: () -> Unit) {
+fun HomeScreen(activity: MainActivity, onSettings: () -> Unit, onTouchpad: () -> Unit) {
+    val settings by Prefs.settings.collectAsStateWithLifecycle()
     val displays by DisplayRepository.externalDisplays.collectAsStateWithLifecycle()
     val signals by ConnectionSignals.signals.collectAsStateWithLifecycle()
     val ext = displays.firstOrNull()
@@ -125,8 +126,11 @@ fun HomeScreen(activity: MainActivity, onSettings: () -> Unit) {
         Row(Modifier.fillMaxWidth().padding(start = 32.dp, end = 24.dp, top = 18.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("BeyondPad", color = BP.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
             Spacer(Modifier.weight(1f))
+            GhostButton("Touchpad", BpIcons.Touchpad, onClick = onTouchpad)
+            Spacer(Modifier.width(10.dp))
             RoundIcon(Icons.Filled.Settings, "Settings", onSettings)
         }
+        CrashBanner(activity)
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 12.dp)) {
             if (maxWidth > 900.dp) {
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(40.dp)) {
@@ -147,6 +151,34 @@ fun HomeScreen(activity: MainActivity, onSettings: () -> Unit) {
         }
     }
     if (showModes && ext != null) ModeSheet(activity, ext) { showModes = false }
+
+    val version = remember { runCatching { activity.packageManager.getPackageInfo(activity.packageName, 0).versionName }.getOrNull().orEmpty() }
+    if (settings.onboarded && version.isNotEmpty() && settings.lastVersion != version) {
+        WhatsNewSheet(version) { Prefs.update { it.copy(lastVersion = version) } }
+    }
+}
+
+/** Offers the crash report by itself after BeyondPad closed unexpectedly. */
+@Composable
+private fun CrashBanner(activity: MainActivity) {
+    val settings by Prefs.settings.collectAsStateWithLifecycle()
+    val crash = remember { com.beyondpad.app.CrashLog.read() }
+    val stamp = crash?.lineSequence()?.firstOrNull().orEmpty()
+    AnimatedVisibility(crash != null && stamp != settings.crashSeen, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 6.dp).background(BP.Surface, RoundedCornerShape(14.dp)).padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("BeyondPad closed unexpectedly last time.", color = BP.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text("Copy report", color = BP.Accent, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.pressable {
+                activity.getSystemService(android.content.ClipboardManager::class.java)
+                    .setPrimaryClip(android.content.ClipData.newPlainText("BeyondPad crash", crash))
+                activity.toast("Crash report copied. Paste it to Claude to get it fixed.")
+                Prefs.update { it.copy(crashSeen = stamp) }
+            }.padding(horizontal = 10.dp, vertical = 6.dp))
+            Text("Dismiss", color = BP.TextDim, fontSize = 14.sp, modifier = Modifier.pressable { Prefs.update { it.copy(crashSeen = stamp) } }.padding(horizontal = 10.dp, vertical = 6.dp))
+        }
+    }
 }
 
 @Composable
@@ -240,6 +272,22 @@ private fun ColumnScope.MonitorPanel(activity: MainActivity, ext: ExternalDispla
                 ext.currentMode?.let { "${it.width} × ${it.height} · ${it.refreshRate.toInt()} Hz" } ?: "Resolution",
                 color = BP.Text, fontSize = 14.sp, fontWeight = FontWeight.Medium,
             )
+        }
+    }
+
+    // Reopen what was on the monitor last time
+    val last = settings.lastSession.mapNotNull { byKey[it] }
+    AnimatedVisibility(opened.isEmpty() && last.isNotEmpty(), enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+        Column {
+            Spacer(Modifier.height(20.dp))
+            Row(
+                Modifier.fillMaxWidth().pressable(shape = 14.dp) { last.forEach { openOnMonitor(it) } }.background(BP.AccentSoft).padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                last.take(4).forEach { Image(it.icon, null, Modifier.size(28.dp).padding(end = 4.dp)) }
+                Spacer(Modifier.width(8.dp))
+                Text("Reopen last session (${last.size} app${if (last.size == 1) "" else "s"})", color = BP.Text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            }
         }
     }
 

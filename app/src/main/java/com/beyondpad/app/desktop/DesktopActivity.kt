@@ -91,6 +91,13 @@ import com.beyondpad.app.display.ModeController
 import com.beyondpad.app.display.ModeResult
 import com.beyondpad.app.ui.theme.BP
 import com.beyondpad.app.ui.theme.BpIcons
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.input.key.isAltPressed
 import com.beyondpad.app.ui.theme.BeyondPadTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -133,7 +140,15 @@ class DesktopActivity : ComponentActivity() {
         DesktopLauncher.runningOnDisplay = myDisplayId()
         ModeController.desktopWindow = myDisplayId() to window
 
-        setContent { BeyondPadTheme { DesktopScreen(myDisplayId()) } }
+        BP.apply(this, Prefs.settings.value)
+        setContent {
+            // "Desktop size" in Settings scales only BeyondPad's own desktop on the monitor.
+            val st by Prefs.settings.collectAsStateWithLifecycle()
+            val base = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(base.density * st.desktopScale, base.fontScale)) {
+                BeyondPadTheme { DesktopScreen(myDisplayId()) }
+            }
+        }
     }
 
     override fun onResume() {
@@ -193,6 +208,15 @@ private fun DesktopScreen(displayId: Int) {
     val sessionApps = DesktopSession.opened
     var drawerOpen by remember { mutableStateOf(false) }
     var panelOpen by remember { mutableStateOf(false) }
+    var switcherOpen by remember { mutableStateOf(false) }
+    val wallpaper by produceState<ImageBitmap?>(null, Wallpaper.version, settings.hasWallpaper) {
+        value = if (settings.hasWallpaper) withContext(Dispatchers.IO) { Wallpaper.load(ctx) } else null
+    }
+    val time by produceState(initialValue = "" to "") {
+        val t = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val d = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault())
+        while (true) { val now = Date(); value = t.format(now) to d.format(now); delay(5000) }
+    }
     var toast by remember { mutableStateOf<String?>(null) }
     var cascade by remember { mutableStateOf(0) }
     val focus = remember { FocusRequester() }
@@ -204,10 +228,10 @@ private fun DesktopScreen(displayId: Int) {
     val style = if (settings.freeformWindows) WindowStyle.WINDOW else WindowStyle.FULLSCREEN
     fun open(app: AppEntry, target: Int = displayId, newInstance: Boolean = false, forceStyle: WindowStyle? = null) {
         val r = AppLauncher.launch(ctx, app, target, forceStyle ?: style, newInstance, cascade++)
-        if (r.ok && target == displayId) {
-            sessionApps.remove(app.key); sessionApps.add(app.key)
-        }
-        toast = if (r.ok && target != displayId) "Asked the system to show ${app.label} on the tablet" else r.message
+        if (r.ok && target == displayId) DesktopSession.noteOpened(app.key)
+        if (r.ok && target != displayId) DesktopSession.noteMovedAway(app.key)
+        toast = if (r.ok && target != displayId) "${app.label} opened on the tablet" else r.message
+        switcherOpen = false
         drawerOpen = false
     }
     fun togglePin(app: AppEntry) {
@@ -221,7 +245,7 @@ private fun DesktopScreen(displayId: Int) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF15171B), Color(0xFF0E0F11))))
+            .background(Brush.linearGradient(listOf(BP.SurfaceHigh, BP.Background, BP.AccentSoft)))
             .focusRequester(focus)
             .focusable()
             .onPreviewKeyEvent { e ->
@@ -230,21 +254,28 @@ private fun DesktopScreen(displayId: Int) {
                     e.key == Key.MetaLeft || e.key == Key.MetaRight || (e.isCtrlPressed && e.key == Key.Spacebar) -> {
                         drawerOpen = !drawerOpen; true
                     }
-                    e.key == Key.Escape && (drawerOpen || panelOpen) -> { drawerOpen = false; panelOpen = false; true }
+                    e.isAltPressed && e.key == Key.Tab -> { switcherOpen = !switcherOpen; drawerOpen = false; true }
+                    e.key == Key.Escape && (drawerOpen || panelOpen || switcherOpen) -> { drawerOpen = false; panelOpen = false; switcherOpen = false; true }
                     else -> false
                 }
             },
     ) {
-        // Desktop shortcuts
-        Column(Modifier.fillMaxSize().padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 80.dp)) {
+        // Wallpaper with a soft scrim so text and icons stay readable
+        wallpaper?.let {
+            Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0x66000000), Color(0x22000000), Color(0x88000000)))))
+        }
+        val onDesk = if (wallpaper != null) Color.White else BP.Text
+        val onDeskDim = if (wallpaper != null) Color(0xCCFFFFFF) else BP.TextDim
+
+        // Clock and desktop shortcuts
+        Column(Modifier.fillMaxSize().padding(start = 40.dp, top = 36.dp, end = 40.dp, bottom = 80.dp)) {
+            Text(time.first, color = onDesk, fontSize = 72.sp, fontWeight = FontWeight.Light, letterSpacing = (-2).sp)
+            Text(time.second, color = onDeskDim, fontSize = 18.sp, modifier = Modifier.padding(bottom = 28.dp))
             if (pinnedApps.isEmpty()) {
                 Text(
-                    "BeyondPad Desktop",
-                    color = BP.Text, fontSize = 28.sp,
-                )
-                Text(
-                    "Open the Start menu (bottom left, or the Windows/Meta key) and right-click or long-press an app to pin it here.",
-                    color = BP.TextDim, modifier = Modifier.padding(top = 6.dp).width(520.dp),
+                    "Open Start (bottom left, or the Windows key) and right-click an app to pin it here.",
+                    color = onDeskDim, fontSize = 14.sp, modifier = Modifier.width(520.dp),
                 )
             }
             LazyVerticalGrid(
@@ -254,11 +285,49 @@ private fun DesktopScreen(displayId: Int) {
             ) {
                 items(pinnedApps, key = { "d_" + it.key }) { app ->
                     AppTile(
-                        app = app, size = 56, showLabel = true, labelColor = Color.White,
+                        app = app, size = 56, showLabel = true, labelColor = onDesk,
                         indicator = null,
                         onOpen = { open(app) },
                         menu = { dismiss -> AppMenuItems(app, true, dismiss, ::open, ::togglePin, displayId) },
                     )
+                }
+            }
+        }
+
+        // App switcher (taskbar button or Alt+Tab)
+        AnimatedVisibility(
+            switcherOpen,
+            modifier = Modifier.align(Alignment.Center),
+            enter = fadeIn(tween(160)) + scaleIn(tween(200), initialScale = 0.94f),
+            exit = fadeOut(tween(120)) + scaleOut(tween(140), targetScale = 0.96f),
+        ) {
+            val openApps = sessionApps.toList().asReversed().mapNotNull { byKey[it] }
+            Surface(color = BP.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.border(1.dp, BP.Outline, RoundedCornerShape(20.dp))) {
+                Column(Modifier.padding(24.dp)) {
+                    Text("Open on this monitor", color = BP.Text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(16.dp))
+                    if (openApps.isEmpty()) Text("Nothing opened from BeyondPad yet.", color = BP.TextDim, fontSize = 14.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        openApps.take(8).forEach { app ->
+                            Box {
+                                Column(
+                                    Modifier.width(120.dp).clip(RoundedCornerShape(14.dp)).background(BP.SurfaceHigh)
+                                        .clickable { open(app) }.padding(vertical = 18.dp, horizontal = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Image(app.icon, app.label, Modifier.size(52.dp))
+                                    Text(app.label, color = BP.Text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
+                                }
+                                Icon(
+                                    Icons.Filled.Close, "Remove from list", tint = BP.TextDim,
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clip(CircleShape)
+                                        .clickable { DesktopSession.noteMovedAway(app.key) }.padding(3.dp),
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    Text("Alt+Tab opens this. Click an app to bring it to the front.", color = BP.TextFaint, fontSize = 12.sp)
                 }
             }
         }
@@ -326,7 +395,8 @@ private fun DesktopScreen(displayId: Int) {
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TaskbarButton(BpIcons.Apps, "Start", highlighted = drawerOpen) { drawerOpen = !drawerOpen; panelOpen = false }
+            TaskbarButton(BpIcons.Apps, "Start", highlighted = drawerOpen) { drawerOpen = !drawerOpen; panelOpen = false; switcherOpen = false }
+            TaskbarButton(BpIcons.Switcher, "Switch apps", highlighted = switcherOpen) { switcherOpen = !switcherOpen; drawerOpen = false; panelOpen = false }
             Spacer(Modifier.width(6.dp))
             Box(Modifier.width(1.dp).height(28.dp).background(BP.Outline))
             Spacer(Modifier.width(6.dp))

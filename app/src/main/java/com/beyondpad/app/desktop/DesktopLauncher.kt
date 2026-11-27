@@ -17,12 +17,12 @@ object DesktopLauncher {
         return try {
             ctx.startActivity(intent, ActivityOptions.makeBasic().setLaunchDisplayId(displayId).toBundle())
             DisplayRepository.log("Opening BeyondPad desktop on display $displayId")
-            AppLauncher.Result(true, "Desktop opening on the monitor")
+            AppLauncher.Result(true, "Desktop is on the monitor")
         } catch (e: SecurityException) {
             DisplayRepository.log("System refused to open the desktop on display $displayId: ${e.message}")
-            AppLauncher.Result(false, "The system refused to open the desktop on the monitor.")
+            AppLauncher.Result(false, "Android didn't allow the desktop on the monitor.")
         } catch (e: Exception) {
-            AppLauncher.Result(false, "Could not open the desktop: ${e.message}")
+            AppLauncher.Result(false, "The desktop didn't open. Try again.")
         }
     }
 

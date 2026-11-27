@@ -63,6 +63,19 @@ fun ModeSheet(activity: MainActivity, ext: ExternalDisplayInfo, onDismiss: () ->
                     color = when (status.result) { ModeResult.VERIFIED -> BP.Good; ModeResult.NOT_APPLIED -> BP.Warn; else -> BP.TextDim },
                 )
             }
+            val locked = ModeController.lockedRate(ext)
+            AnimatedVisibility(locked != null, enter = fadeIn(), exit = fadeOut()) {
+                Column(Modifier.padding(bottom = 18.dp)) {
+                    Group {
+                        Item(
+                            "Locked at ${locked?.toInt() ?: 0} Hz by OxygenOS",
+                            "This firmware refused a different refresh rate for this monitor, so BeyondPad stays at ${locked?.toInt() ?: 0} Hz. Resolution can still be changed.",
+                            dot = BP.Warn,
+                        )
+                        Item("Try again anyway", "After an OxygenOS update, for example", onClick = { ModeController.forgetLock(); apply() }, last = true)
+                    }
+                }
+            }
             Group {
                 Item(
                     "Automatic", best?.let { "Best available: ${it.label}" },

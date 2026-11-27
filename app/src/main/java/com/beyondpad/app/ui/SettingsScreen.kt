@@ -50,9 +50,31 @@ import com.beyondpad.app.display.LaunchTest
 import com.beyondpad.app.service.DisplayMonitorService
 import com.beyondpad.app.system.SystemAccess
 import com.beyondpad.app.ui.theme.BP
+import com.beyondpad.app.desktop.Wallpaper
+import com.beyondpad.app.touch.TouchpadService
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @Composable
-fun SettingsScreen(activity: MainActivity, onBack: () -> Unit) {
+fun SettingsScreen(activity: MainActivity, onBack: () -> Unit, onHelp: () -> Unit) {
     val settings by Prefs.settings.collectAsStateWithLifecycle()
     val caps by CapabilityProbe.capabilities.collectAsStateWithLifecycle()
     val displays by DisplayRepository.externalDisplays.collectAsStateWithLifecycle()
@@ -73,6 +95,15 @@ fun SettingsScreen(activity: MainActivity, onBack: () -> Unit) {
     var showLog by rememberSaveable { mutableStateOf(false) }
     val version = remember { runCatching { activity.packageManager.getPackageInfo(activity.packageName, 0).versionName }.getOrNull() ?: "" }
     fun yn(b: Boolean?) = when (b) { true -> "Yes"; false -> "No"; null -> "Unknown" }
+    val touchpadOn = remember(tick) { TouchpadService.isEnabled(activity) }
+    val scope = rememberCoroutineScope()
+    val pickWallpaper = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch {
+            val ok = withContext(Dispatchers.IO) { Wallpaper.save(activity, uri) }
+            if (ok) Prefs.update { it.copy(hasWallpaper = true) }
+            activity.toast(if (ok) "Wallpaper set" else "Couldn't use that picture")
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 18.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -83,11 +114,66 @@ fun SettingsScreen(activity: MainActivity, onBack: () -> Unit) {
         Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 760.dp).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
 
+                Label("Appearance")
+                Group {
+                    Column(Modifier.padding(18.dp)) {
+                        Text("Theme", color = BP.Text, fontSize = 15.sp)
+                        Spacer(Modifier.height(10.dp))
+                        Segmented(listOf("system" to "System", "dark" to "Dark", "light" to "Light"), settings.theme) { t -> Prefs.update { it.copy(theme = t) } }
+                        Spacer(Modifier.height(18.dp))
+                        Text("Accent", color = BP.Text, fontSize = 15.sp)
+                        Spacer(Modifier.height(10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            BP.accents.forEachIndexed { i, (name, color) ->
+                                val sel = settings.accent == i
+                                val ring by androidx.compose.animation.core.animateFloatAsState(if (sel) 1f else 0f, label = "ring")
+                                Box(
+                                    Modifier.size(40.dp).pressable(shape = 20.dp) { Prefs.update { it.copy(accent = i) } }
+                                        .border(3.dp, BP.Text.copy(alpha = ring), CircleShape).padding(5.dp).clip(CircleShape).background(color),
+                                    contentAlignment = Alignment.Center,
+                                ) { if (sel) Icon(Icons.Filled.Check, name, tint = Color.White, modifier = Modifier.size(18.dp)) }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(28.dp))
+                Label("Monitor desktop look")
+                Group {
+                    Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Desktop size", color = BP.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                            Text("${(settings.desktopScale * 100).roundToInt()} %", color = BP.TextDim, fontSize = 14.sp)
+                        }
+                        Text("Taskbar, icons and menus on the monitor. Other apps keep their own size.", color = BP.TextDim, fontSize = 13.sp)
+                        Slider(
+                            value = settings.desktopScale, onValueChange = { v -> Prefs.update { it.copy(desktopScale = (v * 20).roundToInt() / 20f) } },
+                            valueRange = 0.8f..1.6f,
+                            colors = SliderDefaults.colors(thumbColor = BP.Accent, activeTrackColor = BP.Accent, inactiveTrackColor = BP.SurfaceHigh),
+                        )
+                    }
+                    Item("Wallpaper", if (settings.hasWallpaper) "Your picture" else "Default", onClick = {
+                        pickWallpaper.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }, trailing = { Text("Choose", color = BP.Accent, fontSize = 14.sp, fontWeight = FontWeight.Medium) }, last = !settings.hasWallpaper)
+                    if (settings.hasWallpaper) Item("Remove wallpaper", null, onClick = {
+                        Wallpaper.clear(activity); Prefs.update { it.copy(hasWallpaper = false) }
+                    }, last = true)
+                }
+
+                Spacer(Modifier.height(28.dp))
                 Label("Desktop on the monitor")
                 Group {
-                    Item("Open automatically", "When a monitor becomes available", trailing = {
-                        Toggle(settings.autoOpenDesktop) { on -> Prefs.update { it.copy(autoOpenDesktop = on) } }
-                    })
+                    Item("Open automatically", if (settings.autoOpenDesktop && !overlay) "Needs Display over other apps, tap to allow" else "When a monitor becomes available",
+                        onClick = if (settings.autoOpenDesktop && !overlay) ({ activity.startActivity(SystemAccess.overlaySettingsIntent(activity)) }) else null,
+                        trailing = {
+                            Toggle(settings.autoOpenDesktop) { on ->
+                                Prefs.update { it.copy(autoOpenDesktop = on) }
+                                if (on && !overlay) {
+                                    activity.toast("Allow Display over other apps so the desktop can open by itself")
+                                    activity.startActivity(SystemAccess.overlaySettingsIntent(activity))
+                                }
+                            }
+                        })
                     Item("Open apps in windows", "Only where Android supports desktop windowing", trailing = {
                         Toggle(settings.freeformWindows) { on -> Prefs.update { it.copy(freeformWindows = on) } }
                     })
@@ -111,8 +197,11 @@ fun SettingsScreen(activity: MainActivity, onBack: () -> Unit) {
                     Perm("Display over other apps", "Lets the desktop open by itself", overlay) {
                         activity.startActivity(SystemAccess.overlaySettingsIntent(activity))
                     }
-                    Perm("Usage access", "Shows which apps are active", usage, last = true) {
+                    Perm("Usage access", "Shows which apps are active", usage) {
                         activity.startActivity(SystemAccess.usageSettingsIntent())
+                    }
+                    Perm("Touchpad (Accessibility)", "Point, click and type on the monitor without a mouse", touchpadOn, last = true) {
+                        activity.screen.value = "touchpad"
                     }
                 }
 
@@ -184,11 +273,28 @@ fun SettingsScreen(activity: MainActivity, onBack: () -> Unit) {
                 }
 
                 Spacer(Modifier.height(28.dp))
+                Group { Item("Help", "Common questions and fixes", onClick = onHelp, last = true) }
+
+                Spacer(Modifier.height(28.dp))
                 Text(
                     "BeyondPad $version · works offline, no developer options\n${caps.device} · ${caps.build}",
                     color = BP.TextFaint, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(start = 4.dp, bottom = 24.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun Segmented(options: List<Pair<String, String>>, selected: String, onSelect: (String) -> Unit) {
+    Row(Modifier.clip(RoundedCornerShape(12.dp)).background(BP.SurfaceHigh).padding(4.dp)) {
+        options.forEach { (key, label) ->
+            val on = key == selected
+            val bg by animateColorAsState(if (on) BP.Surface else BP.SurfaceHigh, label = "seg")
+            Text(
+                label, color = if (on) BP.Text else BP.TextDim, fontSize = 14.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier.pressable(shape = 9.dp) { onSelect(key) }.background(bg).padding(horizontal = 18.dp, vertical = 9.dp),
+            )
         }
     }
 }

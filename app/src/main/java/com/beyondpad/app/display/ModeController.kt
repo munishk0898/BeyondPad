@@ -41,8 +41,23 @@ object ModeController {
         if (!s.autoResolution) {
             info.supportedModes.firstOrNull { keyOf(it) == s.manualModeKey }?.let { return it }
         }
-        return NativeModePicker.best(info.supportedModes)
+        val best = NativeModePicker.best(info.supportedModes) ?: return null
+        // If OxygenOS already refused a different rate on this monitor, don't keep asking for it.
+        val locked = lockedRate(info) ?: return best
+        return info.supportedModes.filter { it.width == best.width && it.height == best.height }
+            .minByOrNull { kotlin.math.abs(it.refreshRate - locked) } ?: best
     }
+
+    fun monitorId(info: ExternalDisplayInfo) = info.productName ?: info.name
+
+    /** The refresh rate OxygenOS holds this monitor at, if it has refused to change it before. */
+    fun lockedRate(info: ExternalDisplayInfo): Float? {
+        val l = Prefs.settings.value.lockedRate ?: return null
+        val (id, rate) = l.split('|').let { if (it.size == 2) it[0] to it[1] else return null }
+        return if (id == monitorId(info)) rate.toFloatOrNull() else null
+    }
+
+    fun forgetLock() = Prefs.update { it.copy(lockedRate = null) }
 
     /** Called by the desktop when it starts and whenever settings change. */
     fun applyToDesktop() {
@@ -98,10 +113,14 @@ object ModeController {
             ModeStatus(ModeResult.VERIFIED, target, actual, "Verified: monitor is running ${actual.label}.")
         } else {
             DisplayRepository.log("Not applied: asked for ${target.label}, display reports ${actual?.label ?: "unknown"}")
+            val info = DisplayRepository.externalDisplays.value.firstOrNull { it.displayId == displayId }
+            if (info != null && actual != null && actual.refreshRate != target.refreshRate) {
+                Prefs.update { it.copy(lockedRate = "${monitorId(info)}|${actual.refreshRate}") }
+            }
             ModeStatus(
                 ModeResult.NOT_APPLIED, target, actual,
-                "The system did not switch modes. It still reports ${actual?.label ?: "an unknown mode"}. " +
-                    "OxygenOS may lock the external output mode; try the system display settings.",
+                "OxygenOS kept the monitor at ${actual?.label ?: "its current mode"}. " +
+                    "This firmware doesn't let apps change it, so BeyondPad will stop asking.",
             )
         }
     }

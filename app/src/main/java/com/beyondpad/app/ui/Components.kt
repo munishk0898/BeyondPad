@@ -1,6 +1,8 @@
 package com.beyondpad.app.ui
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -46,6 +48,7 @@ import com.beyondpad.app.ui.theme.BP
 fun Modifier.pressable(enabled: Boolean = true, shape: Dp = 12.dp, onClick: () -> Unit): Modifier {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
+    val view = LocalView.current
     val scale by animateFloatAsState(
         if (pressed) 0.95f else 1f,
         spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium), label = "press",
@@ -53,7 +56,10 @@ fun Modifier.pressable(enabled: Boolean = true, shape: Dp = 12.dp, onClick: () -
     return this
         .graphicsLayer { scaleX = scale; scaleY = scale }
         .clip(RoundedCornerShape(shape))
-        .clickable(interactionSource = source, indication = androidx.compose.material3.ripple(), enabled = enabled, onClick = onClick)
+        .clickable(interactionSource = source, indication = androidx.compose.material3.ripple(), enabled = enabled) {
+            view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+            onClick()
+        }
 }
 
 @Composable

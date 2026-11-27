@@ -51,7 +51,7 @@ class DisplayMonitorService : Service() {
 
     private val onConnect: (ExternalDisplayInfo) -> Unit = { info ->
         updateOngoing()
-        notifyEvent("Monitor connected: ${info.name}", info.currentMode?.label ?: "Mode unknown", true)
+        notifyEvent("${info.productName ?: info.name} connected", info.currentMode?.label ?: "Ready to use", true)
         if (Prefs.settings.value.autoOpenDesktop) {
             // Give the system a moment to finish configuring the new display.
             handler.postDelayed({ autoOpen(info.displayId) }, 1500)
@@ -60,7 +60,7 @@ class DisplayMonitorService : Service() {
 
     private val onDisconnect: (Int) -> Unit = {
         updateOngoing()
-        notifyEvent("Monitor disconnected", "Back to tablet-only operation.", false)
+        notifyEvent("Monitor disconnected", "Everything is back on the tablet.", false)
     }
 
     override fun onCreate() {
@@ -91,7 +91,7 @@ class DisplayMonitorService : Service() {
         if (DisplayRepository.externalDisplays.value.none { it.displayId == displayId }) return
         if (DesktopLauncher.runningOnDisplay == displayId) return
         if (!SystemAccess.canDrawOverlays(this)) {
-            DisplayRepository.log("Auto-open skipped: Android blocks background launches unless 'Display over other apps' is allowed. Tap the notification instead.")
+            DisplayRepository.log("Desktop not opened by itself: allow Display over other apps, or tap Show desktop in the notification.")
             return
         }
         val r = DesktopLauncher.open(this, displayId)
@@ -107,9 +107,17 @@ class DisplayMonitorService : Service() {
         )
     }
 
+    private fun hop(touchpad: Boolean): PendingIntent = PendingIntent.getActivity(
+        this, if (touchpad) 11 else 10,
+        Intent(this, com.beyondpad.app.desktop.OpenDesktopActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra(com.beyondpad.app.desktop.OpenDesktopActivity.EXTRA_TOUCHPAD, touchpad),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
     private fun ongoing(): Notification {
         val ext = DisplayRepository.primaryExternal()
-        val text = ext?.let { "${it.name} · ${it.currentMode?.label ?: ""}" } ?: "Waiting for an HDMI / USB-C monitor"
+        val text = ext?.let { "${it.productName ?: it.name} · ${it.currentMode?.label ?: ""}" } ?: "Waiting for a monitor"
         return NotificationCompat.Builder(this, CH_MONITOR)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("BeyondPad")
@@ -117,6 +125,12 @@ class DisplayMonitorService : Service() {
             .setOngoing(true)
             .setSilent(true)
             .setContentIntent(mainIntent(false))
+            .apply {
+                if (ext != null) {
+                    addAction(0, "Show desktop", hop(false))
+                    addAction(0, "Touchpad", hop(true))
+                }
+            }
             .build()
     }
 
@@ -131,7 +145,10 @@ class DisplayMonitorService : Service() {
             .setContentText(text)
             .setAutoCancel(true)
             .setContentIntent(mainIntent(false))
-        if (withDesktopAction) b.addAction(0, "Open desktop on monitor", mainIntent(true))
+        if (withDesktopAction) {
+            b.addAction(0, "Show desktop", hop(false))
+            b.addAction(0, "Touchpad", hop(true))
+        }
         try {
             getSystemService(NotificationManager::class.java).notify(ID_EVENT, b.build())
         } catch (_: SecurityException) { /* notifications not allowed */ }

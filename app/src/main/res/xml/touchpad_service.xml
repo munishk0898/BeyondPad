@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Touchpad mode: performs taps/scrolls on the monitor and types into its focused field.
+     No event types are requested, so the service is idle unless the touchpad screen is open. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowsChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="1000"
+    android:description="@string/touchpad_description"
+    android:summary="@string/touchpad_summary" />

@@ -39,7 +39,7 @@ object AppLauncher {
                 val intent = ctx.packageManager.getLaunchIntentForPackage(app.packageName)
                     ?.setComponent(app.component)
                     ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK or Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
-                    ?: return Result(false, "${app.label} has no launch intent.")
+                    ?: return Result(false, "${app.label} can't be opened from outside the app.")
                 ctx.startActivity(intent, opts.toBundle())
             } else {
                 la.startMainActivity(app.component, app.user, null, opts.toBundle())
@@ -48,11 +48,11 @@ object AppLauncher {
             Result(true, "Opened ${app.label}")
         } catch (e: SecurityException) {
             DisplayRepository.log("Refused ${app.label} on display $displayId: ${e.message}")
-            Result(false, "The system refused to open ${app.label} on that display.")
+            Result(false, "Android didn't allow ${app.label} on that screen. Some apps only run on the tablet.")
         } catch (e: ActivityNotFoundException) {
-            Result(false, "${app.label} could not be found.")
+            Result(false, "${app.label} isn't installed any more.")
         } catch (e: Exception) {
-            Result(false, "Could not open ${app.label}: ${e.message}")
+            Result(false, "${app.label} didn't open. Try again, or open it on the tablet.")
         }
     }
 

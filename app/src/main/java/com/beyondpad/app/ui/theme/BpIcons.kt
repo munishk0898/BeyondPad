@@ -24,4 +24,10 @@ object BpIcons {
     val Monitor by lazy {
         icon("monitor", "M20,3H4c-1.1,0 -2,0.9 -2,2v11c0,1.1 0.9,2 2,2h3l-1,1v2h12v-2l-1,-1h3c1.1,0 2,-0.9 2,-2V5c0,-1.1 -0.9,-2 -2,-2zm0,13H4V5h16v11z")
     }
+    val Touchpad by lazy {
+        icon("touchpad", "M20,4H4C2.9,4 2,4.9 2,6v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zm0,14H4V6h16v12zM7,15h4v2H7zm6,0h4v2h-4z")
+    }
+    val Switcher by lazy {
+        icon("switcher", "M3,5h8v6H3zm10,0h8v6h-8zM3,13h8v6H3zm10,0h8v6h-8z")
+    }
 }

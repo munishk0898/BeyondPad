@@ -4,4 +4,8 @@
     <string name="desktop_label">BeyondPad Desktop</string>
     <string name="channel_monitor">External display monitor</string>
     <string name="channel_events">Display connection events</string>
+    <string name="touchpad_label">BeyondPad touchpad</string>
+    <string name="touchpad_summary">Use the tablet as a touchpad for the monitor</string>
+    <string name="touchpad_description">Lets BeyondPad show a pointer on your external monitor and click, scroll and type there when you use its Touchpad screen. It is idle the rest of the time, reads nothing and sends nothing anywhere.</string>
+    <string name="tile_label">Monitor desktop</string>
 </resources>
