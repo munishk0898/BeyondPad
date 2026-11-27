@@ -1,0 +1,173 @@
+Downloading https://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+.............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%..............100%
+
+Welcome to Gradle 8.14.3!
+
+Here are the highlights of this release:
+ - Java 24 support
+ - GraalVM Native Image toolchain selection
+ - Enhancements to test reporting
+ - Build Authoring improvements
+
+For more details see https://docs.gradle.org/8.14.3/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :app
+w: file:///home/runner/work/BeyondPad/BeyondPad/app/build.gradle.kts:23:9: 'resourceConfigurations: MutableSet<String>' is deprecated. Support for resource configurations will be removed. For language resource configurations in applications, use androidResources.localeFilters.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preStandardReleaseBuild UP-TO-DATE
+> Task :app:mergeStandardReleaseJniLibFolders
+> Task :app:mergeStandardReleaseNativeLibs
+> Task :app:buildKotlinToolingMetadata
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+
+> Task :app:stripStandardReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so. Run with --info option to learn more.
+
+> Task :app:generateStandardReleaseBuildConfig
+> Task :app:checkStandardReleaseDuplicateClasses
+> Task :app:extractStandardReleaseNativeSymbolTables
+> Task :app:mergeStandardReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:generateStandardReleaseResValues
+> Task :app:checkStandardReleaseAarMetadata
+> Task :app:mapStandardReleaseSourceSetPaths
+> Task :app:generateStandardReleaseResources
+> Task :app:packageStandardReleaseResources
+> Task :app:mergeStandardReleaseResources
+> Task :app:createStandardReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksStandardRelease
+> Task :app:parseStandardReleaseLocalResources
+> Task :app:processStandardReleaseMainManifest
+> Task :app:processStandardReleaseManifest
+> Task :app:javaPreCompileStandardRelease
+> Task :app:mergeStandardReleaseArtProfile
+> Task :app:extractProguardFiles
+> Task :app:mergeStandardReleaseStartupProfile
+> Task :app:mergeStandardReleaseShaders
+> Task :app:compileStandardReleaseShaders NO-SOURCE
+> Task :app:generateStandardReleaseAssets UP-TO-DATE
+> Task :app:mergeStandardReleaseAssets
+> Task :app:processStandardReleaseManifestForPackage
+> Task :app:compressStandardReleaseAssets
+> Task :app:extractStandardReleaseVersionControlInfo
+> Task :app:collectStandardReleaseDependencies
+> Task :app:sdkStandardReleaseDependencyData
+> Task :app:writeStandardReleaseAppMetadata
+> Task :app:processStandardReleaseResources
+> Task :app:writeStandardReleaseSigningConfigVersions
+> Task :app:preTouchpadReleaseBuild UP-TO-DATE
+> Task :app:mergeTouchpadReleaseJniLibFolders
+> Task :app:mergeTouchpadReleaseNativeLibs
+> Task :app:generateTouchpadReleaseBuildConfig
+
+> Task :app:stripTouchpadReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so. Run with --info option to learn more.
+
+> Task :app:checkTouchpadReleaseAarMetadata
+> Task :app:extractTouchpadReleaseNativeSymbolTables
+> Task :app:generateTouchpadReleaseResValues
+> Task :app:mergeTouchpadReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkTouchpadReleaseDuplicateClasses
+> Task :app:mapTouchpadReleaseSourceSetPaths
+> Task :app:generateTouchpadReleaseResources
+> Task :app:packageTouchpadReleaseResources
+> Task :app:createTouchpadReleaseCompatibleScreenManifests
+> Task :app:parseTouchpadReleaseLocalResources
+> Task :app:extractDeepLinksTouchpadRelease
+> Task :app:processTouchpadReleaseMainManifest
+> Task :app:processTouchpadReleaseManifest
+> Task :app:javaPreCompileTouchpadRelease
+> Task :app:processTouchpadReleaseManifestForPackage
+> Task :app:mergeTouchpadReleaseArtProfile
+> Task :app:mergeTouchpadReleaseStartupProfile
+> Task :app:mergeTouchpadReleaseShaders
+> Task :app:compileTouchpadReleaseShaders NO-SOURCE
+> Task :app:generateTouchpadReleaseAssets UP-TO-DATE
+> Task :app:mergeTouchpadReleaseAssets
+> Task :app:compressTouchpadReleaseAssets
+> Task :app:extractTouchpadReleaseVersionControlInfo
+> Task :app:mergeTouchpadReleaseResources
+> Task :app:collectTouchpadReleaseDependencies
+> Task :app:sdkTouchpadReleaseDependencyData
+> Task :app:writeTouchpadReleaseAppMetadata
+> Task :app:writeTouchpadReleaseSigningConfigVersions
+> Task :app:preStandardDebugBuild UP-TO-DATE
+> Task :app:generateStandardDebugBuildConfig
+> Task :app:checkStandardDebugAarMetadata
+> Task :app:generateStandardDebugResValues
+> Task :app:mapStandardDebugSourceSetPaths
+> Task :app:generateStandardDebugResources
+> Task :app:processTouchpadReleaseResources
+> Task :app:packageStandardDebugResources
+> Task :app:parseStandardDebugLocalResources
+> Task :app:createStandardDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksStandardDebug
+> Task :app:mergeStandardDebugResources
+> Task :app:processStandardDebugMainManifest
+> Task :app:processStandardDebugManifest
+> Task :app:processStandardDebugManifestForPackage
+> Task :app:javaPreCompileStandardDebug
+> Task :app:preStandardDebugAndroidTestBuild SKIPPED
+> Task :app:generateStandardDebugAndroidTestResValues
+> Task :app:preStandardDebugUnitTestBuild UP-TO-DATE
+> Task :app:processStandardDebugResources
+> Task :app:compileStandardReleaseKotlin
+w: file:///home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/OpenDesktopActivity.kt:27:9 'fun overridePendingTransition(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+
+> Task :app:compileTouchpadReleaseKotlin
+w: file:///home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/OpenDesktopActivity.kt:27:9 'fun overridePendingTransition(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+
+> Task :app:compileStandardDebugKotlin
+w: file:///home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/OpenDesktopActivity.kt:27:9 'fun overridePendingTransition(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+
+> Task :app:compileTouchpadReleaseJavaWithJavac
+> Task :app:compileStandardReleaseJavaWithJavac
+> Task :app:mergeStandardReleaseGeneratedProguardFiles
+> Task :app:processStandardReleaseJavaRes
+> Task :app:mergeTouchpadReleaseGeneratedProguardFiles
+> Task :app:processTouchpadReleaseJavaRes
+> Task :app:expandStandardReleaseArtProfileWildcards
+> Task :app:expandTouchpadReleaseArtProfileWildcards
+> Task :app:compileStandardDebugJavaWithJavac
+> Task :app:bundleStandardDebugClassesToCompileJar
+> Task :app:mergeStandardReleaseJavaResource
+> Task :app:mergeTouchpadReleaseJavaResource
+> Task :app:generateStandardDebugLintReportModel
+> Task :app:generateStandardDebugAndroidTestLintModel
+> Task :app:generateStandardDebugUnitTestLintModel
+> Task :app:lintAnalyzeStandardDebugUnitTest
+> Task :app:lintAnalyzeStandardDebugAndroidTest
+> Task :app:minifyStandardReleaseWithR8
+> Task :app:lintAnalyzeStandardDebug
+> Task :app:convertShrunkResourcesToBinaryStandardRelease
+> Task :app:optimizeStandardReleaseResources
+> Task :app:compileStandardReleaseArtProfile
+> Task :app:packageStandardRelease
+> Task :app:createStandardReleaseApkListingFileRedirect
+> Task :app:assembleStandardRelease
+
+> Task :app:lintReportStandardDebug
+Wrote HTML report to file:///home/runner/work/BeyondPad/BeyondPad/app/build/reports/lint-results-standardDebug.html
+
+> Task :app:lintStandardDebug
+> Task :app:minifyTouchpadReleaseWithR8
+> Task :app:convertShrunkResourcesToBinaryTouchpadRelease
+> Task :app:optimizeTouchpadReleaseResources
+> Task :app:compileTouchpadReleaseArtProfile
+> Task :app:packageTouchpadRelease
+> Task :app:createTouchpadReleaseApkListingFileRedirect
+> Task :app:assembleTouchpadRelease
+
+[Incubating] Problems report is available at: file:///home/runner/work/BeyondPad/BeyondPad/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 3m 36s
+113 actionable tasks: 113 executed

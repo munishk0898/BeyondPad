@@ -1,0 +1,297 @@
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/service/DisplayMonitorService.kt:71: Warning: Field requires API level 34 (current min is 30): android.content.pm.ServiceInfo#FOREGROUND_SERVICE_TYPE_SPECIAL_USE [InlinedApi]
+        ServiceCompat.startForeground(this, ID_ONGOING, ongoing(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "InlinedApi":
+   This check scans through all the Android API field references in the
+   application and flags certain constants, such as static final integers and
+   Strings, which were introduced in later versions. These will actually be
+   copied into the class files rather than being referenced, which means that
+   the value is available even when running on older devices. In some cases
+   that's fine, and in other cases it can result in a runtime crash or
+   incorrect behavior. It depends on the context, so consider the code
+   carefully and decide whether it's safe and can be suppressed or whether the
+   code needs to be guarded.
+
+   If you really want to use this API and don't need to support older devices
+   just set the minSdkVersion in your build.gradle or AndroidManifest.xml
+   files.
+
+   If your code is deliberately accessing newer APIs, and you have ensured
+   (e.g. with conditional execution) that this code will only ever be called
+   on a supported platform, then you can annotate your class or method with
+   the @TargetApi annotation specifying the local minimum SDK to apply, such
+   as @TargetApi(11), such that this check considers 11 rather than your
+   manifest file's minimum SDK as the required API level.
+
+/home/runner/work/BeyondPad/BeyondPad/gradle/wrapper/gradle-wrapper.properties:3: Warning: A newer version of Gradle than 8.14.3 is available: 8.14.8 [AndroidGradlePluginVersion]
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "AndroidGradlePluginVersion":
+   This detector looks for usage of the Android Gradle Plugin where the
+   version you are using is not the current stable release. Using older
+   versions is fine, and there are cases where you deliberately want to stick
+   with an older version. However, you may simply not be aware that a more
+   recent version is available, and that is what this lint check helps find.
+
+/home/runner/work/BeyondPad/BeyondPad/app/build.gradle.kts:87: Warning: A newer version of androidx.core:core-ktx than 1.16.0 is available: 1.19.1 [GradleDependency]
+    implementation("androidx.core:core-ktx:1.16.0")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/build.gradle.kts:88: Warning: A newer version of androidx.activity:activity-compose than 1.10.1 is available: 1.13.0 [GradleDependency]
+    implementation("androidx.activity:activity-compose:1.10.1")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/build.gradle.kts:89: Warning: A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.9.1 is available: 2.11.1 [GradleDependency]
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/build.gradle.kts:90: Warning: A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.9.1 is available: 2.11.1 [GradleDependency]
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.1")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "GradleDependency":
+   This detector looks for usages of libraries where the version you are using
+   is not the current stable release. Using older versions is fine, and there
+   are cases where you deliberately want to stick with an older version.
+   However, you may simply not be aware that a more recent version is
+   available, and that is what this lint check helps find.
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/ui/Home.kt:187: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+private fun Hero(activity: MainActivity, link: LinkState, ext: ExternalDisplayInfo?, s: Signals, stageModifier: Modifier) {
+                                                                                                 ~~~~~~~~~~~~~
+
+   Explanation for issues of type "ModifierParameter":
+   The first (or only) Modifier parameter in a Composable function should
+   follow the following rules:
+   - Be named modifier
+   - Have a type of Modifier
+   - Either have no default value, or have a default value of Modifier
+   - If optional, be the first optional parameter in the parameter list
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.ui
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/home/runner/work/BeyondPad/BeyondPad/app/build.gradle.kts:22: Warning: Missing x86_64 ABI support for ChromeOS [ChromeOsAbiSupport]
+        ndk { abiFilters += "arm64-v8a" }
+                            ~~~~~~~~~~~
+
+   Explanation for issues of type "ChromeOsAbiSupport":
+   To properly support ChromeOS, your Android application should have an x86
+   and/or x86_64 binary as part of the build configuration. To fix the issue,
+   ensure your files are properly optimized for ARM; the binary translator
+   will then ensure compatibility with x86. Alternatively, add an abiSplit for
+   x86 within your build.gradle file and create the required x86
+   dependencies.
+
+   https://developer.android.com/ndk/guides/abis
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/AndroidManifest.xml:31: Warning: The attribute android:allowBackup is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute android:dataExtractionRules specifying an @xml resource which configures cloud backups and device transfers on Android 12 and higher. [DataExtractionRules]
+        android:allowBackup="false"
+                             ~~~~~
+
+   Explanation for issues of type "DataExtractionRules":
+   Before Android 12, the attributes android:allowBackup and
+   android:fullBackupContent were used to configure all forms of backup,
+   including cloud backups, device-to-device transfers and adb backup.
+
+   In Android 12 and higher, these attributes have been deprecated and will
+   only apply to cloud backups. You should instead use the attribute
+   android:dataExtractionRules, specifying an @xml resource that configures
+   which files to back up, for cloud backups and for device-to-device
+   transfers, separately. If your minSdkVersion supports older versions,
+   you'll still want to specify an android:fullBackupContent resource if the
+   default behavior is not right for your app.
+
+   https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   https://goo.gle/DataExtractionRules
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/service/DesktopTileService.kt:19: Warning: Unnecessary; SDK_INT is always >= 30 [ObsoleteSdkInt]
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) subtitle = ext?.let { it.productName ?: it.name } ?: "No monitor"
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/res/mipmap-anydpi-v26: Warning: This folder configuration (v26) is unnecessary; minSdkVersion is 30. Merge all the resources in this folder into mipmap-anydpi. [ObsoleteSdkInt]
+
+   Explanation for issues of type "ObsoleteSdkInt":
+   This check flags version checks that are not necessary, because the
+   minSdkVersion (or surrounding known API level) is already at least as high
+   as the version checked for.
+
+   Similarly, it also looks for resources in -vNN folders, such as values-v14
+   where the version qualifier is less than or equal to the minSdkVersion,
+   where the contents should be merged into the best folder.
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/display/ConnectionSignals.kt:51: Warning: Do not place Android context classes in static fields (static reference to ConnectionSignals which has field ctx pointing to Context); this is a memory leak [StaticFieldLeak]
+object ConnectionSignals {
+^
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/display/ConnectionSignals.kt:54: Warning: Do not place Android context classes in static fields; this is a memory leak [StaticFieldLeak]
+    private lateinit var ctx: Context
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "StaticFieldLeak":
+   A static field will leak contexts.
+
+   Non-static inner classes have an implicit reference to their outer class.
+   If that outer class is for example a Fragment or Activity, then this
+   reference means that the long-running handler/loader/task will hold a
+   reference to the activity which prevents it from getting garbage
+   collected.
+
+   Similarly, direct field references to activities and fragments from these
+   longer running instances can cause leaks.
+
+   ViewModel classes should never point to Views or non-application Contexts.
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/DesktopActivity.kt:221: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var cascade by remember { mutableStateOf(0) }
+                              ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "AutoboxingStateCreation":
+   Calling mutableStateOf<T>() when T is either backed by a primitive type on
+   the JVM or is a value class results in a state implementation that requires
+   all state values to be boxed. This usually causes an additional allocation
+   for each state write, and adds some additional work to auto-unbox values
+   when reading the value of the state. Instead, prefer to use a specialized
+   primitive state implementation for Int, Long, Float, and Double when the
+   state does not need to track null values and does not override the default
+   SnapshotMutationPolicy. See mutableIntStateOf(), mutableLongStateOf(),
+   mutableFloatStateOf(), and mutableDoubleStateOf() for more information.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.runtime
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/res/values/strings.xml:7: Warning: The resource R.string.touchpad_label appears to be unused [UnusedResources]
+    <string name="touchpad_label">BeyondPad touchpad</string>
+            ~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/res/values/strings.xml:8: Warning: The resource R.string.touchpad_summary appears to be unused [UnusedResources]
+    <string name="touchpad_summary">Use the tablet as a touchpad for the monitor</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/res/values/strings.xml:9: Warning: The resource R.string.touchpad_description appears to be unused [UnusedResources]
+    <string name="touchpad_description">Lets BeyondPad show a pointer on your external monitor and click, scroll and type there when you use its Touchpad screen. It is idle the rest of the time, reads nothing and sends nothing anywhere.</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UnusedResources":
+   Unused resources make applications larger and slow down builds.
+
+
+   The unused resource check can ignore tests. If you want to include
+   resources that are only referenced from tests, consider packaging them in a
+   test source set instead.
+
+   You can include test sources in the unused resource check by setting the
+   system property lint.unused-resources.include-tests =true, and to exclude
+   them (usually for performance reasons), use
+   lint.unused-resources.exclude-tests =true.
+   ,
+
+   Available options:
+
+   **skip-libraries** (default is true):
+   Whether the unused resource check should skip reporting unused resources in libraries.
+
+   Many libraries will declare resources that are part of the library surface; other modules depending on the library will also reference the resources. To avoid reporting all these resources as unused (in the context of a library), the unused resource check normally skips reporting unused resources in libraries. Instead, run the unused resource check on the consuming app module (along with `checkDependencies=true`).
+
+   However, there are cases where you want to check that all the resources declared in a library are used; in that case, you can disable the skip option.
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UnusedResources">
+           <option name="skip-libraries" value="true" />
+       </issue>
+   </lint>
+   ```
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/Prefs.kt:64: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+        sp.edit()
+        ~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/StatusPresentation.kt:39: Warning: Use the KTX extension function String.toColorInt instead? [UseKtx]
+            setBackgroundColor(Color.parseColor("#0A1020"))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/StatusPresentation.kt:45: Warning: Use the KTX extension function String.toColorInt instead? [UseKtx]
+            setTextColor(Color.parseColor("#3D8BFF")); textSize = 18f
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/StatusPresentation.kt:49: Warning: Use the KTX extension function String.toColorInt instead? [UseKtx]
+            setTextColor(Color.parseColor("#8D99B3")); textSize = 18f; gravity = Gravity.CENTER
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/system/SystemAccess.kt:22: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${ctx.packageName}"))
+                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/ui/TouchpadScreen.kt:253: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+                        activity.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${activity.packageName}")))
+                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UseKtx":
+   The Android KTX libraries decorates the Android platform SDK as well as
+   various libraries with more convenient extension functions available from
+   Kotlin, allowing you to use default parameters, named parameters, and
+   more.
+
+   Available options:
+
+   **remove-defaults** (default is true):
+   Whether to skip arguments that match the defaults provided by the extension.
+
+   Extensions often provide default values for some of the parameters. For example:
+   ```kotlin
+   fun Path.readLines(charset: Charset = Charsets.UTF_8): List<String> { return Files.readAllLines(this, charset) }
+   ```
+   This lint check will by default automatically omit parameters that match the default, so if your code was calling
+
+   ```kotlin
+   Files.readAllLines(file, Charset.UTF_8)
+   ```
+   lint would replace this with
+   ```kotlin
+   file.readLines()
+   ```
+   rather than
+
+   ```kotlin
+   file.readLines(Charset.UTF_8
+   ```
+   You can turn this behavior off using this option.
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UseKtx">
+           <option name="remove-defaults" value="true" />
+       </issue>
+   </lint>
+   ```
+
+   **require-present** (default is true):
+   Whether to only offer extensions already available.
+
+   This option lets you only have lint suggest extension replacements if those extensions are already available on the class path (in other words, you're already depending on the library containing the extension method.)
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UseKtx">
+           <option name="require-present" value="true" />
+       </issue>
+   </lint>
+   ```
+
+/home/runner/work/BeyondPad/BeyondPad/app/src/main/java/com/beyondpad/app/desktop/StatusPresentation.kt:46: Warning: String literal in setText can not be translated. Use Android resources instead. [SetTextI18n]
+            text = "BeyondPad · Presentation output (app-specific content only, not a desktop)"
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "SetTextI18n":
+   When calling TextView#setText
+   * Never call Number#toString() to format numbers; it will not handle
+   fraction separators and locale-specific digits properly. Consider using
+   String#format with proper format specifications (%d or %f) instead.
+   * Do not pass a string literal (e.g. "Hello") to display text. Hardcoded
+   text can not be properly translated to other languages. Consider using
+   Android resource strings instead.
+   * Do not build messages by concatenating text chunks. Such messages can not
+   be properly translated.
+
+   https://developer.android.com/guide/topics/resources/localization.html
+
+0 errors, 23 warnings, 1 hint

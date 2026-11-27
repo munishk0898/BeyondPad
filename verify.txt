@@ -1,0 +1,20 @@
+== out/app-standard-release-unsigned.apk
+package: name='com.beyondpad.app' versionCode='9' versionName='1.7.1' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+minSdkVersion:'30'
+targetSdkVersion:'36'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_SPECIAL_USE'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+Verification successful
+DOES NOT VERIFY
+ERROR: Missing META-INF/MANIFEST.MF
+== out/app-touchpad-release-unsigned.apk
+package: name='com.beyondpad.app' versionCode='9' versionName='1.7.1-touchpad' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+minSdkVersion:'30'
+targetSdkVersion:'36'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_SPECIAL_USE'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+Verification successful
+DOES NOT VERIFY
+ERROR: Missing META-INF/MANIFEST.MF
